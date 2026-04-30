@@ -2,8 +2,14 @@ import json
 import os
 from datetime import datetime
 from langchain_core.tools import tool
-
-STORAGE_FILE = "storage/aws.json"
+from pydantic import ValidationError
+from tools.validators import (
+    RegistrarModuloAWSInput,
+    RegistrarModuloDCInput,
+    RegistrarDuvidaCursoInput,
+)
+ 
+STORAGE_FILE = "storage/aws/aws.json"
  
 # ── Roadmaps dos cursos ────────────────────────────────────────────────────
 
@@ -91,7 +97,7 @@ ROADMAP_DATACAMP = {
 }
 
 # ── Helpers ────────────────────────────────────────────────────────────────
-
+ 
 def _load() -> dict:
     if not os.path.exists(STORAGE_FILE):
         return {"modulos_aws": [], "modulos_datacamp": [], "duvidas": []}
@@ -103,12 +109,13 @@ def _load() -> dict:
  
  
 def _save(data: dict):
-    os.makedirs("storage", exist_ok=True)
+    os.makedirs(os.path.dirname(STORAGE_FILE), exist_ok=True)
     with open(STORAGE_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
-
+ 
+ 
 # ── Tool 1: registrar módulo AWS ──────────────────────────────────────────
-
+ 
 @tool
 def registrar_modulo_aws(
     topico: str,
@@ -129,19 +136,27 @@ def registrar_modulo_aws(
     Returns:
         Confirmação do registro com progresso atualizado no curso AWS.
     """
+    try:
+        RegistrarModuloAWSInput(
+            topico=topico, duracao_minutos=duracao_minutos,
+            status=status, observacoes=observacoes,
+        )
+    except ValidationError as e:
+        return f"Erro de validação: {e.errors()[0]['msg']}"
+ 
     data = _load()
 
     modulo = {
-        "topico": topico,
+        "topico":topico,
         "duracao_minutos": duracao_minutos,
         "status": status,
         "observacoes": observacoes,
         "data": datetime.now().strftime("%Y-%m-%d"),
     }
-
+ 
     data["modulos_aws"].append(modulo)
     _save(data)
-
+ 
     topicos_feitos = {m["topico"] for m in data["modulos_aws"]}
     total = len(ROADMAP_AWS_SAA)
     feitos = len([t for t in ROADMAP_AWS_SAA if t in topicos_feitos])
@@ -152,10 +167,11 @@ def registrar_modulo_aws(
         f"Progresso AWS SAA: {feitos}/{total} tópicos ({pct}%)"
     )
  
- # ── Tool 2: registrar módulo Datacamp ────────────────────────────────────
-
+ 
+# ── Tool 2: registrar módulo Datacamp ────────────────────────────────────
+ 
 @tool
-def registrar_modulo_Datacamp(
+def registrar_modulo_datacamp(
     curso: str,
     modulo: str,
     duracao_minutos: int,
@@ -176,6 +192,14 @@ def registrar_modulo_Datacamp(
     Returns:
         Confirmação com progresso na trilha do Datacamp.
     """
+    try:
+        RegistrarModuloDCInput(
+            curso=curso, modulo=modulo, duracao_minutos=duracao_minutos,
+            status=status, observacoes=observacoes,
+        )
+    except ValidationError as e:
+        return f"Erro de validação: {e.errors()[0]['msg']}"
+ 
     data = _load()
 
     entrada = {
@@ -186,10 +210,10 @@ def registrar_modulo_Datacamp(
         "observacoes": observacoes,
         "data": datetime.now().strftime("%Y-%m-%d"),
     }
-
+ 
     data["modulos_datacamp"].append(entrada)
     _save(data)
-
+ 
     # progresso na trilha
     modulos_trilha = ROADMAP_DATACAMP.get(curso, [])
     feitos_trilha = {
@@ -201,9 +225,10 @@ def registrar_modulo_Datacamp(
         f"✅ '{modulo}' registrado — trilha {curso}.\n"
         f"Progresso em {curso}: {len(feitos_trilha)}/{len(modulos_trilha)} módulos ({pct}%)"
     )
-
+ 
+ 
 # ── Tool 3: consultar progresso geral ─────────────────────────────────────
-
+ 
 @tool
 def consultar_progresso_aws_datacamp() -> str:
     """
@@ -220,8 +245,8 @@ def consultar_progresso_aws_datacamp() -> str:
     modulos_dc = data.get("modulos_datacamp", [])
  
     linhas = ["☁️  Progresso — AWS SAA + Datacamp\n"]
-
-    # AWS SSA
+ 
+    # AWS SAA
     topicos_feitos_aws = {m["topico"] for m in modulos_aws}
     feitos_aws = len([t for t in ROADMAP_AWS_SAA if t in topicos_feitos_aws])
     total_aws = len(ROADMAP_AWS_SAA)
@@ -235,8 +260,8 @@ def consultar_progresso_aws_datacamp() -> str:
     if pendentes_aws:
         linhas.append(f"   Próximos: {', '.join(pendentes_aws[:3])}")
     linhas.append("")
-
-    # Datacamp pro trilha
+ 
+    # Datacamp por trilha
     linhas.append("📊 Datacamp")
     total_dc_min = sum(m["duracao_minutos"] for m in modulos_dc)
     linhas.append(f"   Tempo total: {total_dc_min // 60}h {total_dc_min % 60}min\n")
@@ -252,11 +277,12 @@ def consultar_progresso_aws_datacamp() -> str:
             linhas.append(f"   → Próximo: {pendentes[0]}")
  
     return "\n".join(linhas)
-
+ 
+ 
 # ── Tool 4: sugerir próximo tópico ────────────────────────────────────────
-
+ 
 @tool
-def sugerir_proximo_aws_datacamp(paltaforma: str = "") -> str:
+def sugerir_proximo_aws_datacamp(plataforma: str = "") -> str:
     """
     Sugere o próximo tópico a estudar no AWS SAA ou Datacamp seguindo o roadmap.
  
@@ -268,11 +294,11 @@ def sugerir_proximo_aws_datacamp(paltaforma: str = "") -> str:
         Próximo tópico sugerido com contexto e dica de estudo.
     """
     data = _load()
-
-    topicos_aws = {m["topicos"] for m in data.get("modulos_aws", [])}
+ 
+    topicos_aws = {m["topico"] for m in data.get("modulos_aws", [])}
     pendentes_aws = [t for t in ROADMAP_AWS_SAA if t not in topicos_aws]
     pct_aws = 1 - (len(pendentes_aws) / len(ROADMAP_AWS_SAA))
-
+ 
     # calcula menor progresso no Datacamp
     pcts_dc = {}
     for trilha, modulos in ROADMAP_DATACAMP.items():
@@ -312,9 +338,10 @@ def sugerir_proximo_aws_datacamp(paltaforma: str = "") -> str:
             f"Progresso na trilha: {len(feitos_trilha)}/{len(modulos_trilha)}\n\n"
             f"💡 Dica: Complete os exercícios práticos do módulo antes de marcar como concluído."
         )
-
+ 
+ 
 # ── Tool 5: registrar dúvida de curso ─────────────────────────────────────
-
+ 
 @tool
 def registrar_duvida_curso(
     plataforma: str,
@@ -334,15 +361,15 @@ def registrar_duvida_curso(
         Confirmação do registro.
     """
     data = _load()
-
+ 
     entrada = {
         "plataforma": plataforma,
-        "topico":topico,
+        "topico": topico,
         "duvida": duvida,
-        "resolvido": False,
+        "resolvida": False,
         "data": datetime.now().strftime("%Y-%m-%d"),
     }
-
+ 
     data["duvidas"].append(entrada)
     _save(data)
  
@@ -351,9 +378,10 @@ def registrar_duvida_curso(
         f"📝 Dúvida registrada: [{plataforma.upper()}] {topico}\n"
         f"Total de dúvidas pendentes: {pendentes}"
     )
-
+ 
+ 
 # ── Tool 6: listar dúvidas pendentes ──────────────────────────────────────
-
+ 
 @tool
 def listar_duvidas_curso() -> str:
     """
@@ -380,10 +408,3 @@ def listar_duvidas_curso() -> str:
             linhas.append(f"  • [{item['topico']}] {item['duvida']} ({item['data']})")
  
     return "\n".join(linhas)
-
-    
-
-
-
-
-

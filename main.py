@@ -14,6 +14,20 @@ load_dotenv()
 os.makedirs("storage", exist_ok=True)
 
 
+# ── LangSmith — tracing ────────────────────────────────────────────────────
+# Ativado automaticamente se LANGCHAIN_TRACING_V2=true estiver no .env
+# Todas as chamadas de agente, tools e LLM aparecem em smith.langchain.com
+
+def _check_langsmith():
+    """Informa se o LangSmith está ativo ao iniciar o sistema."""
+    if os.getenv("LANGCHAIN_TRACING_V2", "").lower() == "true":
+        project = os.getenv("LANGCHAIN_PROJECT", "multi-agent-coach")
+        print(f"  🔍 LangSmith ativo — projeto: {project}")
+        print(f"     Traces em: https://smith.langchain.com")
+    else:
+        print("  ⚪ LangSmith desativado (LANGCHAIN_TRACING_V2 não definido)")
+
+
 # ── Configuração MCP ───────────────────────────────────────────────────────
 
 MCP_CONFIG = {
@@ -72,6 +86,7 @@ async def main():
     print("\n" + "═" * 50)
     print("  🎓 Personal Study Coach — Multi-Agent System")
     print("  Carregando... aguarde.")
+    _check_langsmith()
     print("═" * 50)
 
     async with AsyncSqliteSaver.from_conn_string("storage/memory.db") as memory:

@@ -2,8 +2,10 @@ import json
 import os
 from datetime import datetime, date, timedelta
 from langchain_core.tools import tool
-
-STORAGE_FILE = "storage/gamification.json"
+from pydantic import ValidationError
+from tools.validators import RegistrarXPAWSInput, RegistrarXPCSInput
+ 
+STORAGE_FILE = "storage/gamification/gamification.json"
 
 # ── Configuração do sistema ────────────────────────────────────────────────
 
@@ -48,7 +50,7 @@ MENSAGENS_NIVEL = {
 }
 
 # ── Helpers ────────────────────────────────────────────────────────────────
-
+ 
 def _load() -> dict:
     if not os.path.exists(STORAGE_FILE):
         return {
@@ -68,9 +70,10 @@ def _load() -> dict:
         if not content:
             return _load.__wrapped__() if hasattr(_load, '__wrapped__') else {}
         return json.loads(content)
-    
+ 
+ 
 def _save(data: dict):
-    os.makedirs("storage", exist_ok=True)
+    os.makedirs(os.path.dirname(STORAGE_FILE), exist_ok=True)
     with open(STORAGE_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
  
@@ -87,7 +90,8 @@ def _get_multiplicador(streak: int) -> float:
         if streak >= dias:
             return mult
     return 1.0
-
+ 
+ 
 def _atualizar_streak(data: dict) -> tuple[int, bool, bool]:
     """
     Atualiza o streak com base na data de hoje.
@@ -138,8 +142,8 @@ def _atualizar_streak(data: dict) -> tuple[int, bool, bool]:
         bonus_streak = True
  
     return streak, bonus_streak
-
-
+ 
+ 
 def _barra_progresso(xp: int, nivel: dict) -> str:
     """Gera uma barra de progresso ASCII para o nível atual."""
     if nivel["max"] == float("inf"):
@@ -252,6 +256,11 @@ def registrar_xp_aws(tipo: str, descricao: str) -> str:
     Returns:
         Dashboard com XP ganho, nível atual, barra de progresso e streak.
     """
+    try:
+        RegistrarXPAWSInput(tipo=tipo, descricao=descricao)
+    except ValidationError as e:
+        return f"Erro de validação: {e.errors()[0]['msg']}"
+ 
     xp_base = XP_TABLE.get(tipo, 20)
     return _registrar_xp("aws", tipo, xp_base, descricao)
  
@@ -275,6 +284,11 @@ def registrar_xp_computacao(tipo: str, descricao: str, dificuldade: str = "") ->
     Returns:
         Dashboard com XP ganho, nível atual, barra de progresso e streak.
     """
+    try:
+        RegistrarXPCSInput(tipo=tipo, descricao=descricao, dificuldade=dificuldade)
+    except ValidationError as e:
+        return f"Erro de validação: {e.errors()[0]['msg']}"
+ 
     if dificuldade and tipo == "leetcode_easy":
         tipo = f"leetcode_{dificuldade}"
  
