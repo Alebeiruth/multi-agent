@@ -8,10 +8,11 @@ clara antes de qualquer operação de I/O.
 
 from datetime import date
 from typing import Literal
-from pydantic import BaseModel, Field, field_validator, model_validator
 
+from pydantic import BaseModel, Field, field_validator
 
 # ── Estatística ────────────────────────────────────────────────────────────
+
 
 class RegistrarAulaInput(BaseModel):
     numero: int = Field(..., ge=1, le=8, description="Número da aula (1 a 8)")
@@ -41,6 +42,7 @@ class RevisaoInput(BaseModel):
 
 TipoSessaoIngles = Literal["escrita", "fala", "podcast", "youtube", "vocabulario", "leitura"]
 
+
 class RegistrarSessaoInglesInput(BaseModel):
     tipo: TipoSessaoIngles
     descricao: str = Field(..., min_length=3, max_length=300)
@@ -57,6 +59,7 @@ class AdicionarVocabularioInput(BaseModel):
 
 TipoEscrita = Literal["email", "essay", "summary", "dialogue", "linkedin"]
 
+
 class GerarPromptEscritaInput(BaseModel):
     tipo: TipoEscrita = Field(default="email")
     contexto: str = Field(default="", max_length=300)
@@ -66,6 +69,7 @@ class GerarPromptEscritaInput(BaseModel):
 
 AreaCS = Literal["cs_fundamentals", "agentes"]
 StatusEstudo = Literal["estudado", "revisando", "dominado"]
+
 
 class RegistrarEstudoCSInput(BaseModel):
     area: AreaCS
@@ -84,9 +88,10 @@ class RegistrarDuvidaInput(BaseModel):
 # ── AWS / Datacamp ─────────────────────────────────────────────────────────
 
 StatusModuloAWS = Literal["concluido", "revisando", "com_duvidas"]
-StatusModuloDC  = Literal["concluido", "em_andamento", "revisando"]
-TrilhaDatacamp  = Literal["Python", "Machine Learning", "Data Engineering", "AI & LLMs"]
+StatusModuloDC = Literal["concluido", "em_andamento", "revisando"]
+TrilhaDatacamp = Literal["Python", "Machine Learning", "Data Engineering", "AI & LLMs"]
 PlataformaCurso = Literal["aws", "datacamp"]
+
 
 class RegistrarModuloAWSInput(BaseModel):
     topico: str = Field(..., min_length=3, max_length=200)
@@ -112,7 +117,10 @@ class RegistrarDuvidaCursoInput(BaseModel):
 # ── Gamificação ────────────────────────────────────────────────────────────
 
 TipoXPAWS = Literal["aws_topico", "aws_sessao", "datacamp_modulo"]
-TipoXPCS  = Literal["cs_topico", "agentes_topico", "leetcode_easy", "leetcode_medium", "leetcode_hard"]
+TipoXPCS = Literal[
+    "cs_topico", "agentes_topico", "leetcode_easy", "leetcode_medium", "leetcode_hard"
+]
+
 
 class RegistrarXPAWSInput(BaseModel):
     tipo: TipoXPAWS
@@ -136,6 +144,7 @@ class RegistrarXPCSInput(BaseModel):
 
 TipoSessaoCalendar = Literal["leetcode", "artigo", "estatistica", "aws", "datacamp"]
 
+
 class AgendarSessaoInput(BaseModel):
     tipo: TipoSessaoCalendar
     titulo: str = Field(..., min_length=3, max_length=200)
@@ -147,8 +156,11 @@ class AgendarSessaoInput(BaseModel):
     @classmethod
     def validar_data_inicio(cls, v: str) -> str:
         from datetime import datetime
+
         try:
             datetime.strptime(v, "%Y-%m-%d %H:%M")
         except ValueError as err:
-            raise ValueError(f"data_inicio '{v}' inválida. Use o formato: YYYY-MM-DD HH:MM") from err
+            raise ValueError(
+                f"data_inicio '{v}' inválida. Use o formato: YYYY-MM-DD HH:MM"
+            ) from err
         return v

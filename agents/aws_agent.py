@@ -1,21 +1,21 @@
-import os
 from datetime import datetime
+
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage, AIMessage
-from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
- 
+from langgraph.prebuilt import create_react_agent
+
 from tools.aws_tool import (
+    consultar_progresso_aws_datacamp,
+    listar_duvidas_curso,
+    registrar_duvida_curso,
     registrar_modulo_aws,
     registrar_modulo_datacamp,
-    consultar_progresso_aws_datacamp,
     sugerir_proximo_aws_datacamp,
-    registrar_duvida_curso,
-    listar_duvidas_curso,
 )
 from tools.calendar_tool import agendar_sessao
-from tools.gamification_tool import registrar_xp_aws, consultar_dashboard_xp
- 
+from tools.gamification_tool import consultar_dashboard_xp, registrar_xp_aws
+
 # ── System prompt ──────────────────────────────────────────────────────────
 
 SYSTEM_PROMPT = f"""Você é o agente especialista em AWS e Datacamp de Alexandre.

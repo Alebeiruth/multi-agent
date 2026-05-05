@@ -16,6 +16,8 @@ ignore = [
     "E501",  # linha longa — controlado por line-length
     "B008",  # não chamar funções em defaults de argumentos (LangChain usa isso)
     "N999",  # nome de módulo inválido — arquivos com underscores são ok
+    "W293",  # espaço em linha vazia — ocorre em f-strings de system prompts
+    "W291",  # trailing whitespace — ocorre em f-strings de system prompts
 ]
 
 [tool.ruff.lint.per-file-ignores]
