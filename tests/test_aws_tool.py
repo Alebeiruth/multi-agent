@@ -10,111 +10,128 @@ Cobertura:
 """
 
 import json
+
 import pytest
+
 from tools.aws_tool import (
+    consultar_progresso_aws_datacamp,
+    listar_duvidas_curso,
+    registrar_duvida_curso,
     registrar_modulo_aws,
     registrar_modulo_datacamp,
-    consultar_progresso_aws_datacamp,
     sugerir_proximo_aws_datacamp,
-    registrar_duvida_curso,
-    listar_duvidas_curso,
 )
-
 
 # ── registrar_modulo_aws ───────────────────────────────────────────────────
 
-class TestRegistrarModuloAWS:
 
+class TestRegistrarModuloAWS:
     def test_registra_com_sucesso(self, tmp_storage_aws):
-        result = registrar_modulo_aws.invoke({
-            "topico": "IAM — Users, Groups, Roles e Policies",
-            "duracao_minutos": 60,
-            "status": "concluido",
-            "observacoes": "",
-        })
+        result = registrar_modulo_aws.invoke(
+            {
+                "topico": "IAM — Users, Groups, Roles e Policies",
+                "duracao_minutos": 60,
+                "status": "concluido",
+                "observacoes": "",
+            }
+        )
         assert "✅" in result
         assert "IAM" in result
 
     def test_persiste_no_storage(self, tmp_storage_aws):
-        registrar_modulo_aws.invoke({
-            "topico": "EC2 — Instâncias, Tipos e Pricing",
-            "duracao_minutos": 45,
-            "status": "concluido",
-            "observacoes": "",
-        })
-        with open(tmp_storage_aws, "r") as f:
+        registrar_modulo_aws.invoke(
+            {
+                "topico": "EC2 — Instâncias, Tipos e Pricing",
+                "duracao_minutos": 45,
+                "status": "concluido",
+                "observacoes": "",
+            }
+        )
+        with open(tmp_storage_aws) as f:
             data = json.load(f)
         assert len(data["modulos_aws"]) == 1
 
     def test_mostra_progresso_percentual(self, tmp_storage_aws):
-        result = registrar_modulo_aws.invoke({
-            "topico": "IAM — Users, Groups, Roles e Policies",
-            "duracao_minutos": 60,
-            "status": "concluido",
-            "observacoes": "",
-        })
+        result = registrar_modulo_aws.invoke(
+            {
+                "topico": "IAM — Users, Groups, Roles e Policies",
+                "duracao_minutos": 60,
+                "status": "concluido",
+                "observacoes": "",
+            }
+        )
         assert "%" in result
 
     def test_valida_status_invalido(self, tmp_storage_aws):
-        result = registrar_modulo_aws.invoke({
-            "topico": "IAM — Users, Groups, Roles e Policies",
-            "duracao_minutos": 60,
-            "status": "feito",  # inválido
-            "observacoes": "",
-        })
+        result = registrar_modulo_aws.invoke(
+            {
+                "topico": "IAM — Users, Groups, Roles e Policies",
+                "duracao_minutos": 60,
+                "status": "feito",  # inválido
+                "observacoes": "",
+            }
+        )
         assert "validação" in result.lower()
 
     def test_valida_duracao_zero(self, tmp_storage_aws):
-        result = registrar_modulo_aws.invoke({
-            "topico": "IAM",
-            "duracao_minutos": 0,  # inválido
-            "status": "concluido",
-            "observacoes": "",
-        })
+        result = registrar_modulo_aws.invoke(
+            {
+                "topico": "IAM",
+                "duracao_minutos": 0,  # inválido
+                "status": "concluido",
+                "observacoes": "",
+            }
+        )
         assert "validação" in result.lower()
 
 
 # ── registrar_modulo_datacamp ─────────────────────────────────────────────
 
-class TestRegistrarModuloDatacamp:
 
+class TestRegistrarModuloDatacamp:
     def test_registra_com_sucesso(self, tmp_storage_aws):
-        result = registrar_modulo_datacamp.invoke({
-            "curso": "Python",
-            "modulo": "Python Basics",
-            "duracao_minutos": 30,
-            "status": "concluido",
-            "observacoes": "",
-        })
+        result = registrar_modulo_datacamp.invoke(
+            {
+                "curso": "Python",
+                "modulo": "Python Basics",
+                "duracao_minutos": 30,
+                "status": "concluido",
+                "observacoes": "",
+            }
+        )
         assert "✅" in result
         assert "Python" in result
 
     def test_valida_trilha_invalida(self, tmp_storage_aws):
-        result = registrar_modulo_datacamp.invoke({
-            "curso": "JavaScript",  # não existe
-            "modulo": "Módulo X",
-            "duracao_minutos": 30,
-            "status": "concluido",
-            "observacoes": "",
-        })
+        result = registrar_modulo_datacamp.invoke(
+            {
+                "curso": "JavaScript",  # não existe
+                "modulo": "Módulo X",
+                "duracao_minutos": 30,
+                "status": "concluido",
+                "observacoes": "",
+            }
+        )
         assert "validação" in result.lower()
 
     def test_mostra_progresso_da_trilha(self, tmp_storage_aws):
-        result = registrar_modulo_datacamp.invoke({
-            "curso": "Machine Learning",
-            "modulo": "Supervised Learning with scikit-learn",
-            "duracao_minutos": 60,
-            "status": "concluido",
-            "observacoes": "",
-        })
+        result = registrar_modulo_datacamp.invoke(
+            {
+                "curso": "Machine Learning",
+                "modulo": "Supervised Learning with scikit-learn",
+                "duracao_minutos": 60,
+                "status": "concluido",
+                "observacoes": "",
+            }
+        )
         assert "Machine Learning" in result
         assert "%" in result
 
 
 # ── consultar_progresso_aws_datacamp ──────────────────────────────────────
 
-class TestConsultarProgresso:
 
+class TestConsultarProgresso:
     def test_retorna_mensagem_quando_vazio(self, tmp_storage_aws):
         result = consultar_progresso_aws_datacamp.invoke({})
         assert "0" in result or "AWS" in result
@@ -127,8 +144,8 @@ class TestConsultarProgresso:
 
 # ── sugerir_proximo_aws_datacamp ──────────────────────────────────────────
 
-class TestSugerirProximo:
 
+class TestSugerirProximo:
     def test_sugere_aws(self, tmp_storage_aws):
         result = sugerir_proximo_aws_datacamp.invoke({"plataforma": "aws"})
         assert "AWS SAA" in result
@@ -151,23 +168,27 @@ class TestSugerirProximo:
 
 # ── registrar_duvida_curso / listar_duvidas_curso ─────────────────────────
 
-class TestDuvidasCurso:
 
+class TestDuvidasCurso:
     def test_registra_duvida_aws(self, tmp_storage_aws):
-        result = registrar_duvida_curso.invoke({
-            "plataforma": "aws",
-            "topico": "VPC Peering",
-            "duvida": "Qual a diferença entre VPC Peering e Transit Gateway?",
-        })
+        result = registrar_duvida_curso.invoke(
+            {
+                "plataforma": "aws",
+                "topico": "VPC Peering",
+                "duvida": "Qual a diferença entre VPC Peering e Transit Gateway?",
+            }
+        )
         assert "📝" in result
         assert "VPC Peering" in result
 
     def test_lista_duvidas_pendentes(self, tmp_storage_aws):
-        registrar_duvida_curso.invoke({
-            "plataforma": "datacamp",
-            "topico": "Random Forest",
-            "duvida": "Como escolher o número de árvores?",
-        })
+        registrar_duvida_curso.invoke(
+            {
+                "plataforma": "datacamp",
+                "topico": "Random Forest",
+                "duvida": "Como escolher o número de árvores?",
+            }
+        )
         result = listar_duvidas_curso.invoke({})
         assert "Random Forest" in result
 
@@ -176,9 +197,11 @@ class TestDuvidasCurso:
         assert "pendente" in result.lower() or "🎯" in result
 
     def test_valida_plataforma_invalida(self, tmp_storage_aws):
-        result = registrar_duvida_curso.invoke({
-            "plataforma": "udemy",  # inválido
-            "topico": "Tópico X",
-            "duvida": "Dúvida sobre algo.",
-        })
+        result = registrar_duvida_curso.invoke(
+            {
+                "plataforma": "udemy",  # inválido
+                "topico": "Tópico X",
+                "duvida": "Dúvida sobre algo.",
+            }
+        )
         assert "validação" in result.lower()
