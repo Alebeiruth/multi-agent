@@ -6,6 +6,7 @@ from langchain_core.tools import tool
 from pydantic import ValidationError
 
 from tools.validators import (
+    RegistrarDuvidaCursoInput,
     RegistrarModuloAWSInput,
     RegistrarModuloDCInput,
 )
@@ -56,46 +57,34 @@ ROADMAP_AWS_SAA = [
 ]
 
 ROADMAP_DATACAMP = {
-    "Data Scientist": [
-        "Introdução ao Python",
-        "Python intermediario",
-        "Investigando filmes da Netflix",
-        "Manipulação de dados com o pandas",
-        "Explorando as notas dos testes das escolas públicas de NYC",
-        "Junção de dados com o pandas",
-        "Introdução a estatistica em Python",
-        "Introdução a Visualização de Dados com a Matplotlib",
-        "Introdução a Visualização de Dados com o Seaborn",
-        "Visualizando a história dos vencedores do Prêmio Nobel",
-        "Introdução a funções em Python",
-        "Caixa de ferramentas Python",
-        "Manipulação de Dados com Python",
-        "Análise Exploratória de Dados em Python",
-        "Analisando o Crime em Los Angeles",
-        "Trabalhando com dados categóricos em Python",
-        "Customer Analytics: Preparing Data for Modeling",
-        "Conceitos de comunicação de dados",
-        "Introdução a importação de dados em Python",
-        "Limpeza de dados em Python",
-        "Exploring Airbnb Market Trends",
-        "Trabalhando com datas e horários em Python",
-        "Importando e Limpando Dados co Python",
-        "Como escrever funções em Python",
-        "Programação em Python",
-        "Introdução a Regressão com stasmodels em Python",
-        "Modeling Car Insurance Claim Outcomes",
-        "Amostragem em Python",
-        "Teste de hipóteses em Python",
-        "Projeto experimental em Python",
-        "Hypothesis Testing with Men's and Women's Soccer Matches",
-        "Aprendizado Supervisionado com o scikit-learn",
-        "Modelagem Preditiva para Agricultura",
-        "Unsupervised Learning em Python",
-        "Clustering Antarctic Penguin Species",
-        "Aprendizado de maquina com modelos baseadis em árvores em Python",
-        "Predicting Movie Rental Durantiosn",
+    "Python": [
+        "Python Basics",
+        "Intermediate Python",
+        "Data Manipulation with pandas",
+        "Data Visualization with Matplotlib",
+        "Statistical Thinking in Python",
+    ],
+    "Machine Learning": [
+        "Supervised Learning with scikit-learn",
+        "Unsupervised Learning in Python",
+        "Linear Classifiers in Python",
+        "Tree-Based Models in Python",
+        "Model Validation in Python",
+    ],
+    "Data Engineering": [
+        "Introduction to Data Engineering",
+        "Building Data Pipelines in Python",
+        "Introduction to Airflow",
+        "Introduction to dbt",
+    ],
+    "AI & LLMs": [
+        "Introduction to LLMs",
+        "Working with the OpenAI API",
+        "Vector Databases for AI",
+        "Building AI Applications",
     ],
 }
+
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -152,7 +141,6 @@ def registrar_modulo_aws(
     data = _load()
 
     modulo = {
-        "topico": topico,
         "duracao_minutos": duracao_minutos,
         "status": status,
         "observacoes": observacoes,
@@ -212,7 +200,6 @@ def registrar_modulo_datacamp(
     data = _load()
 
     entrada = {
-        "curso": curso,
         "modulo": modulo,
         "duracao_minutos": duracao_minutos,
         "status": status,
@@ -367,10 +354,14 @@ def registrar_duvida_curso(
     Returns:
         Confirmação do registro.
     """
+    try:
+        RegistrarDuvidaCursoInput(plataforma=plataforma, topico=topico, duvida=duvida)
+    except ValidationError as e:
+        return f"Erro de validação: {e.errors()[0]['msg']}"
+
     data = _load()
 
     entrada = {
-        "plataforma": plataforma,
         "topico": topico,
         "duvida": duvida,
         "resolvida": False,
