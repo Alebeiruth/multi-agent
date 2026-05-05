@@ -1,18 +1,19 @@
-from datetime import datetime
 import json
 import os
-
+from datetime import datetime
 from langchain_core.tools import tool
+from pydantic import ValidationError
+from tools.validators import RegistrarSessaoInglesInput, AdicionarVocabularioInput
 
-STORAGE_FILE = "storage/ingles.json"
+STORAGE_FILE = "storage/ingles/ingles.json"
+
 
 # ── Helpers ────────────────────────────────────────────────────────────────
-
 
 def _load() -> dict:
     if not os.path.exists(STORAGE_FILE):
         return {"sessoes": [], "exercicios": [], "vocabulario": []}
-    with open(STORAGE_FILE, encoding="utf-8") as f:
+    with open(STORAGE_FILE, "r", encoding="utf-8") as f:
         content = f.read().strip()
         if not content:
             return {"sessoes": [], "exercicios": [], "vocabulario": []}
@@ -20,13 +21,12 @@ def _load() -> dict:
 
 
 def _save(data: dict):
-    os.makedirs("storage", exist_ok=True)
+    os.makedirs(os.path.dirname(STORAGE_FILE), exist_ok=True)
     with open(STORAGE_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
 # ── Tool 1: registrar sessão de estudo ────────────────────────────────────
-
 
 @tool
 def registrar_sessao_ingles(
@@ -48,10 +48,17 @@ def registrar_sessao_ingles(
     Returns:
         Confirmação do registro com estatísticas acumuladas.
     """
+    try:
+        RegistrarSessaoInglesInput(
+            tipo=tipo, descricao=descricao,
+            duracao_minutos=duracao_minutos, observacoes=observacoes,
+        )
+    except ValidationError as e:
+        return f"Erro de validação: {e.errors()[0]['msg']}"
+
     data = _load()
 
     sessao = {
-        "tipo": tipo,
         "descricao": descricao,
         "duracao_minutos": duracao_minutos,
         "observacoes": observacoes,
@@ -73,7 +80,6 @@ def registrar_sessao_ingles(
 
 
 # ── Tool 2: consultar progresso de inglês ─────────────────────────────────
-
 
 @tool
 def consultar_progresso_ingles() -> str:
@@ -100,27 +106,27 @@ def consultar_progresso_ingles() -> str:
         t = s["tipo"]
         por_tipo[t] = por_tipo.get(t, 0) + s["duracao_minutos"]
 
-        tipo_str = "\n".join(
-            f"  • {t}: {v // 60}h {v % 60}min" for t, v in sorted(por_tipo.items())
-        )
+    tipo_str = "\n".join(
+        f"  • {t}: {v // 60}h {v % 60}min" for t, v in sorted(por_tipo.items())
+    )
 
-        # sessoes nos ultimos 7 dias
-        hoje = datetime.now().data()
-        recentes = [
-            s for s in sessoes if (hoje - datetime.strptime(s["data"], "%Y-%m-%d").date()).days <= 7
-        ]
+    # sessões nos últimos 7 dias
+    hoje = datetime.now().date()
+    recentes = [
+        s for s in sessoes
+        if (hoje - datetime.strptime(s["data"], "%Y-%m-%d").date()).days <= 7
+    ]
 
-        return (
-            f"📊 English Study Progress\n\n"
-            f"Total time: {total_h}h {total_m}min — {len(sessoes)} sessions\n\n"
-            f"By type:\n{tipo_str}\n\n"
-            f"Last 7 days: {len(recentes)} sessions — "
-            f"{sum(s['duracao_minutos'] for s in recentes)} min"
-        )
+    return (
+        f"📊 English Study Progress\n\n"
+        f"Total time: {total_h}h {total_m}min — {len(sessoes)} sessions\n\n"
+        f"By type:\n{tipo_str}\n\n"
+        f"Last 7 days: {len(recentes)} sessions — "
+        f"{sum(s['duracao_minutos'] for s in recentes)} min"
+    )
 
 
 # ── Tool 3: registrar palavra/expressão no vocabulário ───────────────────
-
 
 @tool
 def adicionar_vocabulario(
@@ -164,12 +170,13 @@ def adicionar_vocabulario(
 
     total = len(data["vocabulario"])
     return (
-        f"✅ '{palavra}' added to your vocabulary!\nExample: {exemplo}\nTotal words saved: {total}"
+        f"✅ '{palavra}' added to your vocabulary!\n"
+        f"Example: {exemplo}\n"
+        f"Total words saved: {total}"
     )
 
 
 # ── Tool 4: revisar vocabulário ───────────────────────────────────────────
-
 
 @tool
 def revisar_vocabulario(categoria: str = "", quantidade: int = 5) -> str:
@@ -211,7 +218,6 @@ def revisar_vocabulario(categoria: str = "", quantidade: int = 5) -> str:
 
 # ── Tool 5: sugerir conteúdos de input ───────────────────────────────────
 
-
 @tool
 def sugerir_conteudo_ingles(tema: str = "", nivel: str = "intermediate") -> str:
     """
@@ -228,103 +234,55 @@ def sugerir_conteudo_ingles(tema: str = "", nivel: str = "intermediate") -> str:
     sugestoes = {
         "tech": {
             "youtube": [
-                (
-                    "Fireship",
-                    "https://youtube.com/@Fireship",
-                    "Fast-paced tech explanations, great for listening",
-                ),
-                (
-                    "Theo — t3.gg",
-                    "https://youtube.com/@t3dotgg",
-                    "Web dev discussions, natural English",
-                ),
-                (
-                    "ThePrimeagen",
-                    "https://youtube.com/@ThePrimeagen",
-                    "Dev culture, fast natural speech",
-                ),
+                ("Fireship", "https://youtube.com/@Fireship", "Fast-paced tech explanations, great for listening"),
+                ("Theo — t3.gg", "https://youtube.com/@t3dotgg", "Web dev discussions, natural English"),
+                ("ThePrimeagen", "https://youtube.com/@ThePrimeagen", "Dev culture, fast natural speech"),
             ],
             "podcast": [
                 ("Syntax.fm", "https://syntax.fm", "Web development, intermediate level"),
                 ("The Changelog", "https://changelog.com/podcast", "Open source & tech industry"),
-                (
-                    "Software Engineering Daily",
-                    "https://softwareengineeringdaily.com",
-                    "Deep technical topics",
-                ),
+                ("Software Engineering Daily", "https://softwareengineeringdaily.com", "Deep technical topics"),
             ],
         },
         "AI": {
             "youtube": [
-                (
-                    "Andrej Karpathy",
-                    "https://youtube.com/@AndrejKarpathy",
-                    "Deep learning explained clearly",
-                ),
+                ("Andrej Karpathy", "https://youtube.com/@AndrejKarpathy", "Deep learning explained clearly"),
                 ("Yannic Kilcher", "https://youtube.com/@YannicKilcher", "ML paper walkthroughs"),
                 ("AI Explained", "https://youtube.com/@aiexplained-official", "AI news and trends"),
             ],
             "podcast": [
-                (
-                    "Lex Fridman Podcast",
-                    "https://lexfridman.com/podcast",
-                    "Long-form AI and tech interviews",
-                ),
+                ("Lex Fridman Podcast", "https://lexfridman.com/podcast", "Long-form AI and tech interviews"),
                 ("TWIML AI Podcast", "https://twimlai.com", "ML research and applications"),
             ],
         },
         "business": {
             "youtube": [
-                (
-                    "Harvard Business Review",
-                    "https://youtube.com/@HarvardBusinessReview",
-                    "Business English, formal register",
-                ),
+                ("Harvard Business Review", "https://youtube.com/@HarvardBusinessReview", "Business English, formal register"),
                 ("Simon Sinek", "https://youtube.com/@SimonSinek", "Leadership and communication"),
             ],
             "podcast": [
-                (
-                    "How I Built This",
-                    "https://npr.org/series/how-i-built-this",
-                    "Startup stories, narrative English",
-                ),
-                (
-                    "Masters of Scale",
-                    "https://mastersofscale.com",
-                    "Business growth, natural conversational English",
-                ),
+                ("How I Built This", "https://npr.org/series/how-i-built-this", "Startup stories, narrative English"),
+                ("Masters of Scale", "https://mastersofscale.com", "Business growth, natural conversational English"),
             ],
         },
         "daily": {
             "youtube": [
-                (
-                    "English with Lucy",
-                    "https://youtube.com/@EnglishwithLucy",
-                    "Pronunciation and daily expressions",
-                ),
-                (
-                    "Rachel's English",
-                    "https://youtube.com/@rachelsenglish",
-                    "American accent training",
-                ),
+                ("English with Lucy", "https://youtube.com/@EnglishwithLucy", "Pronunciation and daily expressions"),
+                ("Rachel's English", "https://youtube.com/@rachelsenglish", "American accent training"),
             ],
             "podcast": [
-                (
-                    "6 Minute English (BBC)",
-                    "https://bbc.co.uk/learningenglish/english/features/6-minute-english",
-                    "Short episodes, great for beginners/intermediate",
-                ),
-                (
-                    "All Ears English",
-                    "https://allearsenglish.com",
-                    "Natural American English conversations",
-                ),
+                ("6 Minute English (BBC)", "https://bbc.co.uk/learningenglish/english/features/6-minute-english", "Short episodes, great for beginners/intermediate"),
+                ("All Ears English", "https://allearsenglish.com", "Natural American English conversations"),
             ],
         },
     }
 
-    # fallback para tech se tema não encontrado
-    tema_key = tema.lower() if tema.lower() in sugestoes else "tech"
+    # fallback para tech se tema não encontrado — normaliza maiúsculas
+    tema_normalizado = tema.upper() if tema.upper() in {k.upper() for k in sugestoes} else None
+    if tema_normalizado:
+        tema_key = next(k for k in sugestoes if k.upper() == tema_normalizado)
+    else:
+        tema_key = "tech"
     conteudo = sugestoes[tema_key]
 
     linhas = [f"🎯 Content suggestions for: {tema or 'tech'} ({nivel})\n"]
@@ -338,15 +296,14 @@ def sugerir_conteudo_ingles(tema: str = "", nivel: str = "intermediate") -> str:
         linhas.append(f"  • {nome}\n    {link}\n    → {desc}")
 
     linhas.append(
-        "\n💡 Tip: Watch/listen for 20-30 min daily. "
-        "Don't worry about understanding 100% — consistency beats perfection."
+        f"\n💡 Tip: Watch/listen for 20-30 min daily. "
+        f"Don't worry about understanding 100% — consistency beats perfection."
     )
 
     return "\n".join(linhas)
 
 
 # ── Tool 6: gerar exercício de escrita ───────────────────────────────────
-
 
 @tool
 def gerar_prompt_escrita(tipo: str = "email", contexto: str = "") -> str:
