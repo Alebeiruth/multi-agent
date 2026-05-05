@@ -1,14 +1,15 @@
-import os
 import asyncio
+import os
+
 from dotenv import load_dotenv
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
-from agents.supervisor import Supervisor
+from agents.aws_agent import run_aws_agent
+from agents.computacao_agent import run_computacao_agent
 from agents.estatistica_agent import run_estatistica_agent
 from agents.ingles_agent import run_ingles_agent
-from agents.computacao_agent import run_computacao_agent
-from agents.aws_agent import run_aws_agent
+from agents.supervisor import Supervisor
 
 load_dotenv()
 os.makedirs("storage", exist_ok=True)
@@ -18,12 +19,13 @@ os.makedirs("storage", exist_ok=True)
 # Ativado automaticamente se LANGCHAIN_TRACING_V2=true estiver no .env
 # Todas as chamadas de agente, tools e LLM aparecem em smith.langchain.com
 
+
 def _check_langsmith():
     """Informa se o LangSmith está ativo ao iniciar o sistema."""
     if os.getenv("LANGCHAIN_TRACING_V2", "").lower() == "true":
         project = os.getenv("LANGCHAIN_PROJECT", "multi-agent-coach")
         print(f"  🔍 LangSmith ativo — projeto: {project}")
-        print(f"     Traces em: https://smith.langchain.com")
+        print("     Traces em: https://smith.langchain.com")
     else:
         print("  ⚪ LangSmith desativado (LANGCHAIN_TRACING_V2 não definido)")
 
@@ -47,6 +49,7 @@ MCP_CONFIG = {
 
 
 # ── Dispatcher ─────────────────────────────────────────────────────────────
+
 
 async def dispatch(
     agent_key: str,
@@ -75,12 +78,11 @@ async def dispatch(
     elif agent_key == "aws":
         return await run_aws_agent(user_input, memory)
     else:
-        return (
-            "Nenhum agente ativo. Digite 'menu' para selecionar um agente."
-        )
+        return "Nenhum agente ativo. Digite 'menu' para selecionar um agente."
 
 
 # ── Loop principal ─────────────────────────────────────────────────────────
+
 
 async def main():
     print("\n" + "═" * 50)
@@ -91,7 +93,6 @@ async def main():
 
     async with AsyncSqliteSaver.from_conn_string("storage/memory.db") as memory:
         async with MultiServerMCPClient(MCP_CONFIG) as mcp_client:
-
             supervisor = Supervisor()
 
             # seleção inicial do agente
@@ -130,9 +131,7 @@ async def main():
                 # despacha para o agente ativo
                 print("\nAgente: ", end="", flush=True)
                 try:
-                    resposta = await dispatch(
-                        agent_key, user_input, memory, mcp_client
-                    )
+                    resposta = await dispatch(agent_key, user_input, memory, mcp_client)
                     print(resposta)
                 except Exception as e:
                     print(f"\n[Erro no agente '{agent_key}': {e}]")

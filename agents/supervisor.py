@@ -1,7 +1,7 @@
-import os
 from datetime import datetime
+
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
 # ── Mapa de agentes disponíveis ────────────────────────────────────────────
 
@@ -47,7 +47,7 @@ Regras:
 - Responda SOMENTE com ROUTE:<key> — sem explicações, sem texto adicional
 - Em caso de ambiguidade, prefira o agente mais específico
 - Se a mensagem for saudação genérica ("oi", "olá"), retorne ROUTE:supervisor
-- Hoje é {datetime.now().strftime('%Y-%m-%d')}
+- Hoje é {datetime.now().strftime("%Y-%m-%d")}
  
 Exemplos:
 "me explica variância" → ROUTE:estatistica
@@ -59,78 +59,80 @@ Exemplos:
 
 # ── Classe Supervisor ──────────────────────────────────────────────────────
 
+
 class Supervisor:
-     """
+    """
     Responsável por:
     - Exibir menu de seleção de agente
     - Rotear mensagens para o agente correto via LLM
     - Manter referência ao agente ativo na sessão
     """
-     
-     def __init__(self):
-          self.llm = ChatOpenAI(model="gpt-4o", temperature=0)
-          self.active_agent_key: str | None = None
-        
-    
-     def show_menu(self) -> str:
-         """Exibe o menu de seleção e retorna a key do agente escolhido."""
-         print("\n" + "═" * 50)
-         print("  🎓 Personal Study Coach — Selecione o agente")
-         print("═" * 50)
-         for num, agent in AGENTS.items():
-              print(f"  {num}. {agent['label']}")
-              print(f"     {agent['description']}")
-              print("  0. Sair")
-              print("═" * 50)
-        
-         while True:
-              choice = input("\nEscolha (0-4): ").strip()
-              if choice == "0":
+
+    def __init__(self):
+        self.llm = ChatOpenAI(model="gpt-4o", temperature=0)
+        self.active_agent_key: str | None = None
+
+    def show_menu(self) -> str:
+        """Exibe o menu de seleção e retorna a key do agente escolhido."""
+        print("\n" + "═" * 50)
+        print("  🎓 Personal Study Coach — Selecione o agente")
+        print("═" * 50)
+        for num, agent in AGENTS.items():
+            print(f"  {num}. {agent['label']}")
+            print(f"     {agent['description']}")
+            print("  0. Sair")
+            print("═" * 50)
+
+        while True:
+            choice = input("\nEscolha (0-4): ").strip()
+            if choice == "0":
                 return "sair"
-              if choice in AGENTS:
+            if choice in AGENTS:
                 selected = AGENTS[choice]
                 self.active_agent_key = selected["key"]
                 print(f"\n✅ Agente ativo: {selected['label']}\n")
                 return selected["key"]
-              print("Opção inválida. Digite um número de 0 a 4.")
-     
-     def route(self, user_message: str) -> str:
-         """
+            print("Opção inválida. Digite um número de 0 a 4.")
+
+    def route(self, user_message: str) -> str:
+        """
         Usa o LLM para identificar o agente correto com base na mensagem.
         Retorna a key do agente (ex: 'estatistica', 'ingles', etc).
         Usado apenas quando o agente ativo não está definido ou
         o usuário quer trocar de agente via comando natural.
         """
-         response = self.llm.invoke([
-            SystemMessage(content=SUPERVISOR_PROMPT),
-            HumanMessage(content=user_message),
-         ])
+        response = self.llm.invoke(
+            [
+                SystemMessage(content=SUPERVISOR_PROMPT),
+                HumanMessage(content=user_message),
+            ]
+        )
 
-         raw = response.content.strip()
+        raw = response.content.strip()
 
-         # extrai a key do formato ROUTE:<key>
-         if raw.startswith("ROUTE"):
-             return raw.replace("ROUTE", "").strip()
-         
-         # fallback seguro
-         return self.active_agent_key or "supervisor"
-     
-     def handle_switch_command(self, user_input: str) -> bool:
-         """
+        # extrai a key do formato ROUTE:<key>
+        if raw.startswith("ROUTE"):
+            return raw.replace("ROUTE", "").strip()
+
+        # fallback seguro
+        return self.active_agent_key or "supervisor"
+
+    def handle_switch_command(self, user_input: str) -> bool:
+        """
         Verifica se o usuário quer trocar de agente.
         Comandos reconhecidos: 'trocar', 'menu', 'voltar', '/menu', '/trocar'
         Retorna True se o comando foi reconhecido e o menu foi exibido.
         """
-         triggers = {"trocar", "menu", "voltar", "/menu", "/trocar", "mudar agente"}
-         if user_input.lower().strip() in triggers:
-             self.active_agent_key = None
-             self.show_menu()
-             return True
-         return False
-     
-     def greet(self, agent_key: str) -> str:
-         """Retorna a mensagem de boas-vindas para o agente selecionado."""
-         greetings = {
+        triggers = {"trocar", "menu", "voltar", "/menu", "/trocar", "mudar agente"}
+        if user_input.lower().strip() in triggers:
+            self.active_agent_key = None
+            self.show_menu()
+            return True
+        return False
+
+    def greet(self, agent_key: str) -> str:
+        """Retorna a mensagem de boas-vindas para o agente selecionado."""
+        greetings = {
             "estatistica": (
                 "📐 Agente de Estatística ativo.\n"
                 f"Hoje é {datetime.now().strftime('%d/%m/%Y')}. "
@@ -152,4 +154,4 @@ class Supervisor:
                 "ou responder dúvidas dos cursos."
             ),
         }
-         return greetings.get(agent_key, "Agente ativo. Como posso ajudar?")
+        return greetings.get(agent_key, "Agente ativo. Como posso ajudar?")

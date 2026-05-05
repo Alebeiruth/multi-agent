@@ -1,6 +1,7 @@
+from datetime import datetime
 import json
 import os
-from datetime import datetime
+
 from langchain_core.tools import tool
 
 ARTICLES_FILE = "storage/articles.json"
@@ -8,10 +9,11 @@ ARTICLES_FILE = "storage/articles.json"
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 
+
 def _load() -> dict:
     if not os.path.exists(ARTICLES_FILE):
         return {"articles": []}
-    with open(ARTICLES_FILE, "r", encoding="utf-8") as f:
+    with open(ARTICLES_FILE, encoding="utf-8") as f:
         content = f.read().strip()
         if not content:
             return {"articles": []}
@@ -34,6 +36,7 @@ def _find_article(titulo: str, articles: list) -> dict | None:
 
 
 # ── Tool 1: listar artigos ─────────────────────────────────────────────────
+
 
 @tool
 def listar_artigos(status: str = "") -> str:
@@ -78,6 +81,7 @@ def listar_artigos(status: str = "") -> str:
 
 # ── Tool 2: atualizar status do artigo ────────────────────────────────────
 
+
 @tool
 def atualizar_status_artigo(
     titulo: str,
@@ -119,6 +123,7 @@ def atualizar_status_artigo(
 
 
 # ── Tool 3: adicionar novo artigo ─────────────────────────────────────────
+
 
 @tool
 def adicionar_artigo(
@@ -164,6 +169,7 @@ def adicionar_artigo(
 
 
 # ── Tool 4: consultar artigo específico ───────────────────────────────────
+
 
 @tool
 def consultar_artigo(titulo: str) -> str:

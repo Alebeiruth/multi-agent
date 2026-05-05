@@ -1,26 +1,26 @@
-import os
 from datetime import datetime
+
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage, AIMessage
-from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
- 
+from langgraph.prebuilt import create_react_agent
+
 from tools.computacao_tool import (
-    registrar_estudo_cs,
     consultar_progresso_computacao,
-    sugerir_proximo_topico_cs,
-    registrar_duvida,
     listar_duvidas_pendentes,
+    registrar_duvida,
+    registrar_estudo_cs,
+    sugerir_proximo_topico_cs,
 )
+from tools.gamification_tool import consultar_dashboard_xp, registrar_xp_computacao
 from tools.leetcode_tool import (
-    registrar_exercicio,
-    consultar_progresso,
-    sugerir_proximo_exercicio,
     consultar_leetcode75,
+    consultar_progresso,
     marcar_exercicio_leetcode75,
     proximo_leetcode75,
+    registrar_exercicio,
+    sugerir_proximo_exercicio,
 )
-from tools.gamification_tool import registrar_xp_computacao, consultar_dashboard_xp
 
 # ── System prompt ──────────────────────────────────────────────────────────
 
@@ -30,7 +30,7 @@ CONTEXTO:
 - Alexandre é desenvolvedor focado em IA e agentes inteligentes
 - Está construindo um sistema multi-agente com LangGraph (este sistema que você faz parte)
 - Cobre três frentes: CS Fundamentals, Agentes/LangGraph e LeetCode
-- Hoje é {datetime.now().strftime('%Y-%m-%d')}
+- Hoje é {datetime.now().strftime("%Y-%m-%d")}
  
 SUAS TRÊS FRENTES:
  
@@ -84,17 +84,18 @@ REGRAS:
 
 # ── Função principal do agente ─────────────────────────────────────────────
 
+
 async def run_computacao_agent(
-        user_input: str,
-        memory: AsyncSqliteSaver,
+    user_input: str,
+    memory: AsyncSqliteSaver,
 ) -> str:
     """
     Executa o agente de Computação/IA/LeetCode para uma mensagem do usuário.
- 
+
     Args:
         user_input: Mensagem do usuário.
         memory: Instância compartilhada do AsyncSqliteSaver.
- 
+
     Returns:
         Resposta do agente como string.
     """
@@ -116,18 +117,18 @@ async def run_computacao_agent(
         registrar_xp_computacao,
         consultar_dashboard_xp,
     ]
- 
+
     llm = ChatOpenAI(model="gpt-4o", temperature=0)
- 
+
     agent = create_react_agent(
         model=llm,
         tools=tools,
         prompt=SYSTEM_PROMPT,
         checkpointer=memory,
     )
- 
+
     config = {"configurable": {"thread_id": "alexandre-computacao"}}
- 
+
     resposta = ""
     async for chunk in agent.astream(
         {"messages": [HumanMessage(content=user_input)]},
@@ -137,5 +138,5 @@ async def run_computacao_agent(
         last = chunk["messages"][-1]
         if isinstance(last, AIMessage) and last.content:
             resposta = last.content
- 
+
     return resposta

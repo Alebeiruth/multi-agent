@@ -1,45 +1,50 @@
+from datetime import datetime
 import json
 import os
-from datetime import datetime
+
 from langchain_core.tools import tool
 
 STORAGE_FILE = "storage/ingles.json"
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 
+
 def _load() -> dict:
     if not os.path.exists(STORAGE_FILE):
         return {"sessoes": [], "exercicios": [], "vocabulario": []}
-    with open(STORAGE_FILE, "r", encoding="utf-8") as f:
+    with open(STORAGE_FILE, encoding="utf-8") as f:
         content = f.read().strip()
         if not content:
             return {"sessoes": [], "exercicios": [], "vocabulario": []}
         return json.loads(content)
+
 
 def _save(data: dict):
     os.makedirs("storage", exist_ok=True)
     with open(STORAGE_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
+
 # ── Tool 1: registrar sessão de estudo ────────────────────────────────────
+
 
 @tool
 def registrar_sessao_ingles(
-    tipo:str,
-    descricao:str,
-    duracao_minutos:int,
-    observacoes:str="",
+    tipo: str,
+    descricao: str,
+    duracao_minutos: int,
+    observacoes: str = "",
 ) -> str:
     """
     Registra uma sessão de estudo de inglês (escrita, leitura, podcast, YouTube, etc).
     Use quando o usuário informar que praticou inglês de qualquer forma.
- 
+
     Args:
         tipo: Tipo de prática. Valores: 'escrita', 'fala', 'podcast', 'youtube', 'vocabulario', 'leitura'.
         descricao: O que foi praticado. Exemplo: 'Escrevi email formal para cliente'.
         duracao_minutos: Duração da sessão em minutos.
         observacoes: Dificuldades encontradas ou palavras novas aprendidas.
- 
+
     Returns:
         Confirmação do registro com estatísticas acumuladas.
     """
@@ -66,7 +71,9 @@ def registrar_sessao_ingles(
         f"Total study time: {total_h}h {total_m}min across {len(data['sessoes'])} sessions."
     )
 
+
 # ── Tool 2: consultar progresso de inglês ─────────────────────────────────
+
 
 @tool
 def consultar_progresso_ingles() -> str:
@@ -74,7 +81,7 @@ def consultar_progresso_ingles() -> str:
     Retorna o progresso de estudos de inglês: total de horas, breakdown por tipo
     e consistência semanal.
     Use quando o usuário perguntar sobre seu progresso em inglês.
- 
+
     Returns:
         Resumo completo do progresso.
     """
@@ -83,7 +90,7 @@ def consultar_progresso_ingles() -> str:
 
     if not sessoes:
         return "No sessions registered yet. Start practicing and I'll track your progress!"
-    
+
     total_min = sum(s["duracao_minutos"] for s in sessoes)
     total_h = total_min // 60
     total_m = total_min % 60
@@ -100,8 +107,7 @@ def consultar_progresso_ingles() -> str:
         # sessoes nos ultimos 7 dias
         hoje = datetime.now().data()
         recentes = [
-            s for s in sessoes
-            if (hoje - datetime.strptime(s["data"], "%Y-%m-%d").date()).days <= 7
+            s for s in sessoes if (hoje - datetime.strptime(s["data"], "%Y-%m-%d").date()).days <= 7
         ]
 
         return (
@@ -111,8 +117,10 @@ def consultar_progresso_ingles() -> str:
             f"Last 7 days: {len(recentes)} sessions — "
             f"{sum(s['duracao_minutos'] for s in recentes)} min"
         )
-    
+
+
 # ── Tool 3: registrar palavra/expressão no vocabulário ───────────────────
+
 
 @tool
 def adicionar_vocabulario(
@@ -124,13 +132,13 @@ def adicionar_vocabulario(
     """
     Adiciona uma palavra ou expressão ao vocabulário pessoal do usuário.
     Use quando o usuário aprender uma palavra nova ou pedir para salvar uma expressão.
- 
+
     Args:
         palavra: Palavra ou expressão em inglês.
         traducao: Tradução ou explicação em português.
         exemplo: Exemplo de uso em uma frase em inglês.
         categoria: Categoria. Exemplos: 'tech', 'business', 'daily', 'phrasal verbs', 'geral'.
- 
+
     Returns:
         Confirmação com total de palavras no vocabulário.
     """
@@ -142,7 +150,7 @@ def adicionar_vocabulario(
     )
     if existente:
         return f"'{palavra}' is already in your vocabulary list."
-    
+
     entry = {
         "palavra": palavra,
         "traducao": traducao,
@@ -156,23 +164,23 @@ def adicionar_vocabulario(
 
     total = len(data["vocabulario"])
     return (
-        f"✅ '{palavra}' added to your vocabulary!\n"
-        f"Example: {exemplo}\n"
-        f"Total words saved: {total}"
+        f"✅ '{palavra}' added to your vocabulary!\nExample: {exemplo}\nTotal words saved: {total}"
     )
 
+
 # ── Tool 4: revisar vocabulário ───────────────────────────────────────────
+
 
 @tool
 def revisar_vocabulario(categoria: str = "", quantidade: int = 5) -> str:
     """
     Retorna palavras do vocabulário pessoal para revisão.
     Use quando o usuário quiser revisar palavras aprendidas.
- 
+
     Args:
         categoria: Filtra por categoria. Deixe vazio para todas.
         quantidade: Número de palavras para revisar. Padrão: 5.
- 
+
     Returns:
         Lista de palavras com tradução e exemplo para revisão.
     """
@@ -181,12 +189,12 @@ def revisar_vocabulario(categoria: str = "", quantidade: int = 5) -> str:
 
     if not vocab:
         return "Your vocabulary list is empty. Start adding words as you learn them!"
-    
+
     if categoria:
         vocab = [v for v in vocab if v["categoria"].lower() == categoria.lower()]
         if not vocab:
             return f"No words found in category '{categoria}'."
-        
+
     # pega as mais recentes
     selecionadas = vocab[-quantidade:]
 
@@ -200,100 +208,156 @@ def revisar_vocabulario(categoria: str = "", quantidade: int = 5) -> str:
 
     return "\n\n".join(linhas)
 
+
 # ── Tool 5: sugerir conteúdos de input ───────────────────────────────────
+
 
 @tool
 def sugerir_conteudo_ingles(tema: str = "", nivel: str = "intermediate") -> str:
     """
     Sugere conteúdos de input em inglês: YouTube channels, podcasts e recursos.
     Use quando o usuário pedir sugestões de conteúdo para ouvir ou assistir.
- 
+
     Args:
         tema: Tema de interesse. Exemplos: 'tech', 'AI', 'business', 'daily conversation', 'news'.
         nivel: Nível do inglês. Valores: 'beginner', 'intermediate', 'advanced'. Padrão: 'intermediate'.
- 
+
     Returns:
         Lista curada de sugestões com links e descrições.
     """
     sugestoes = {
         "tech": {
             "youtube": [
-                ("Fireship", "https://youtube.com/@Fireship", "Fast-paced tech explanations, great for listening"),
-                ("Theo — t3.gg", "https://youtube.com/@t3dotgg", "Web dev discussions, natural English"),
-                ("ThePrimeagen", "https://youtube.com/@ThePrimeagen", "Dev culture, fast natural speech"),
+                (
+                    "Fireship",
+                    "https://youtube.com/@Fireship",
+                    "Fast-paced tech explanations, great for listening",
+                ),
+                (
+                    "Theo — t3.gg",
+                    "https://youtube.com/@t3dotgg",
+                    "Web dev discussions, natural English",
+                ),
+                (
+                    "ThePrimeagen",
+                    "https://youtube.com/@ThePrimeagen",
+                    "Dev culture, fast natural speech",
+                ),
             ],
             "podcast": [
                 ("Syntax.fm", "https://syntax.fm", "Web development, intermediate level"),
                 ("The Changelog", "https://changelog.com/podcast", "Open source & tech industry"),
-                ("Software Engineering Daily", "https://softwareengineeringdaily.com", "Deep technical topics"),
+                (
+                    "Software Engineering Daily",
+                    "https://softwareengineeringdaily.com",
+                    "Deep technical topics",
+                ),
             ],
         },
         "AI": {
             "youtube": [
-                ("Andrej Karpathy", "https://youtube.com/@AndrejKarpathy", "Deep learning explained clearly"),
+                (
+                    "Andrej Karpathy",
+                    "https://youtube.com/@AndrejKarpathy",
+                    "Deep learning explained clearly",
+                ),
                 ("Yannic Kilcher", "https://youtube.com/@YannicKilcher", "ML paper walkthroughs"),
                 ("AI Explained", "https://youtube.com/@aiexplained-official", "AI news and trends"),
             ],
             "podcast": [
-                ("Lex Fridman Podcast", "https://lexfridman.com/podcast", "Long-form AI and tech interviews"),
+                (
+                    "Lex Fridman Podcast",
+                    "https://lexfridman.com/podcast",
+                    "Long-form AI and tech interviews",
+                ),
                 ("TWIML AI Podcast", "https://twimlai.com", "ML research and applications"),
             ],
         },
         "business": {
             "youtube": [
-                ("Harvard Business Review", "https://youtube.com/@HarvardBusinessReview", "Business English, formal register"),
+                (
+                    "Harvard Business Review",
+                    "https://youtube.com/@HarvardBusinessReview",
+                    "Business English, formal register",
+                ),
                 ("Simon Sinek", "https://youtube.com/@SimonSinek", "Leadership and communication"),
             ],
             "podcast": [
-                ("How I Built This", "https://npr.org/series/how-i-built-this", "Startup stories, narrative English"),
-                ("Masters of Scale", "https://mastersofscale.com", "Business growth, natural conversational English"),
+                (
+                    "How I Built This",
+                    "https://npr.org/series/how-i-built-this",
+                    "Startup stories, narrative English",
+                ),
+                (
+                    "Masters of Scale",
+                    "https://mastersofscale.com",
+                    "Business growth, natural conversational English",
+                ),
             ],
         },
         "daily": {
             "youtube": [
-                ("English with Lucy", "https://youtube.com/@EnglishwithLucy", "Pronunciation and daily expressions"),
-                ("Rachel's English", "https://youtube.com/@rachelsenglish", "American accent training"),
+                (
+                    "English with Lucy",
+                    "https://youtube.com/@EnglishwithLucy",
+                    "Pronunciation and daily expressions",
+                ),
+                (
+                    "Rachel's English",
+                    "https://youtube.com/@rachelsenglish",
+                    "American accent training",
+                ),
             ],
             "podcast": [
-                ("6 Minute English (BBC)", "https://bbc.co.uk/learningenglish/english/features/6-minute-english", "Short episodes, great for beginners/intermediate"),
-                ("All Ears English", "https://allearsenglish.com", "Natural American English conversations"),
+                (
+                    "6 Minute English (BBC)",
+                    "https://bbc.co.uk/learningenglish/english/features/6-minute-english",
+                    "Short episodes, great for beginners/intermediate",
+                ),
+                (
+                    "All Ears English",
+                    "https://allearsenglish.com",
+                    "Natural American English conversations",
+                ),
             ],
         },
     }
- 
+
     # fallback para tech se tema não encontrado
     tema_key = tema.lower() if tema.lower() in sugestoes else "tech"
     conteudo = sugestoes[tema_key]
- 
+
     linhas = [f"🎯 Content suggestions for: {tema or 'tech'} ({nivel})\n"]
- 
+
     linhas.append("📺 YouTube:")
     for nome, link, desc in conteudo["youtube"]:
         linhas.append(f"  • {nome}\n    {link}\n    → {desc}")
- 
+
     linhas.append("\n🎙️ Podcasts:")
     for nome, link, desc in conteudo["podcast"]:
         linhas.append(f"  • {nome}\n    {link}\n    → {desc}")
- 
+
     linhas.append(
-        f"\n💡 Tip: Watch/listen for 20-30 min daily. "
-        f"Don't worry about understanding 100% — consistency beats perfection."
+        "\n💡 Tip: Watch/listen for 20-30 min daily. "
+        "Don't worry about understanding 100% — consistency beats perfection."
     )
- 
+
     return "\n".join(linhas)
- 
+
+
 # ── Tool 6: gerar exercício de escrita ───────────────────────────────────
+
 
 @tool
 def gerar_prompt_escrita(tipo: str = "email", contexto: str = "") -> str:
     """
     Gera um prompt de exercício de escrita em inglês para o usuário praticar.
     Use quando o usuário pedir um exercício de escrita ou quiser praticar.
- 
+
     Args:
         tipo: Tipo de escrita. Valores: 'email', 'essay', 'summary', 'dialogue', 'linkedin'.
         contexto: Contexto ou tema específico desejado. Exemplo: 'tech job application', 'AI ethics'.
- 
+
     Returns:
         Prompt de exercício com instruções claras.
     """

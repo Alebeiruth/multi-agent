@@ -1,7 +1,8 @@
-import os
 from datetime import datetime, timedelta
-from google.oauth2.credentials import Credentials
+import os
+
 from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from langchain_core.tools import tool
@@ -9,6 +10,7 @@ from langchain_core.tools import tool
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 CREDENTIALS_FILE = "credentials/google_credentials.json"
 TOKEN_FILE = "credentials/token_python.json"
+
 
 def get_calendar_service():
     creds = None
@@ -23,6 +25,7 @@ def get_calendar_service():
         with open(TOKEN_FILE, "w") as f:
             f.write(creds.to_json())
     return build("calendar", "v3", credentials=creds)
+
 
 @tool
 def agendar_sessao(
@@ -69,10 +72,14 @@ def agendar_sessao(
             },
         }
 
-        resultado = service.events().insert(
-            calendarId="primary",
-            body=evento,
-        ).execute()
+        resultado = (
+            service.events()
+            .insert(
+                calendarId="primary",
+                body=evento,
+            )
+            .execute()
+        )
 
         return f"Sessão agendada: {resultado.get('htmlLink')}"
 

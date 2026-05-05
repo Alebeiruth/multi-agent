@@ -1,17 +1,17 @@
-import os
 from datetime import datetime
+
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage, AIMessage
-from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
- 
+from langgraph.prebuilt import create_react_agent
+
 from tools.ingles_tool import (
-    registrar_sessao_ingles,
-    consultar_progresso_ingles,
     adicionar_vocabulario,
+    consultar_progresso_ingles,
+    gerar_prompt_escrita,
+    registrar_sessao_ingles,
     revisar_vocabulario,
     sugerir_conteudo_ingles,
-    gerar_prompt_escrita,
 )
 
 # ── System prompt ──────────────────────────────────────────────────────────
@@ -23,7 +23,7 @@ strong OUTPUT skills (writing and speaking) and rich INPUT habits (listening to 
 CONTEXT:
 - Alexandre is a Brazilian software developer (intermediate-advanced level)
 - His goal is fluency for professional and technical contexts
-- Today is {datetime.now().strftime('%Y-%m-%d')}
+- Today is {datetime.now().strftime("%Y-%m-%d")}
 - ALWAYS communicate in English — full immersion, no Portuguese
  
 YOUR APPROACH:
@@ -71,17 +71,18 @@ Immersion is key. Now, what did you want to say?"
 
 # ── Função principal do agente ─────────────────────────────────────────────
 
+
 async def run_ingles_agent(
     user_input: str,
     memory: AsyncSqliteSaver,
 ) -> str:
     """
     Executa o agente de Inglês para uma mensagem do usuário.
- 
+
     Args:
         user_input: Mensagem do usuário.
         memory: Instância compartilhada do AsyncSqliteSaver.
- 
+
     Returns:
         Resposta do agente como string.
     """
@@ -94,7 +95,7 @@ async def run_ingles_agent(
         gerar_prompt_escrita,
     ]
 
-    llm = ChatOpenAI(model="gpt-40", temperature=0.3) # leve criatividade para coaching
+    llm = ChatOpenAI(model="gpt-40", temperature=0.3)  # leve criatividade para coaching
 
     agent = create_react_agent(
         model=llm,
@@ -104,7 +105,7 @@ async def run_ingles_agent(
     )
 
     config = {"configurable": {"thread_id": "alexandre-ingles"}}
- 
+
     resposta = ""
     async for chunk in agent.astream(
         {"messages": [HumanMessage(content=user_input)]},
@@ -114,5 +115,5 @@ async def run_ingles_agent(
         last = chunk["messages"][-1]
         if isinstance(last, AIMessage) and last.content:
             resposta = last.content
- 
+
     return resposta

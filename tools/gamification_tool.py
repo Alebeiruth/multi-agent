@@ -1,56 +1,59 @@
+from datetime import date, datetime, timedelta
 import json
 import os
-from datetime import datetime, date, timedelta
+
 from langchain_core.tools import tool
 from pydantic import ValidationError
+
 from tools.validators import RegistrarXPAWSInput, RegistrarXPCSInput
- 
+
 STORAGE_FILE = "storage/gamification/gamification.json"
 
 # ── Configuração do sistema ────────────────────────────────────────────────
 
 NIVEIS = [
-    {"titulo": "Noob",          "min": 0,    "max": 300},
-    {"titulo": "Aprendiz",      "min": 300,  "max": 800},
-    {"titulo": "Witcher",       "min": 800,  "max": 1800},
+    {"titulo": "Noob", "min": 0, "max": 300},
+    {"titulo": "Aprendiz", "min": 300, "max": 800},
+    {"titulo": "Witcher", "min": 800, "max": 1800},
     {"titulo": "Black Witcher", "min": 1800, "max": 3500},
     {"titulo": "The Lich King", "min": 3500, "max": float("inf")},
 ]
 
 XP_TABLE = {
-     # AWS
-    "aws_topico":           30,
-    "aws_sessao":           20,
+    # AWS
+    "aws_topico": 30,
+    "aws_sessao": 20,
     # Datacamp
-    "datacamp_modulo":      25,
+    "datacamp_modulo": 25,
     # CS / Agentes
-    "cs_topico":            20,
-    "agentes_topico":       20,
+    "cs_topico": 20,
+    "agentes_topico": 20,
     # LeetCode
-    "leetcode_easy":        10,
-    "leetcode_medium":      20,
-    "leetcode_hard":        40,
+    "leetcode_easy": 10,
+    "leetcode_medium": 20,
+    "leetcode_hard": 40,
     # Streak
-    "streak_7d":            50,
+    "streak_7d": 50,
 }
 
 STREAK_MULTIPLICADORES = [
     (60, 3.0),
     (30, 2.0),
     (14, 1.5),
-    (1,  1.0),
+    (1, 1.0),
 ]
 
 MENSAGENS_NIVEL = {
-    "Noob":          "Bem-vindo à jornada, novato. Todo mestre já foi um noob.",
-    "Aprendiz":      "Você cruzou o primeiro portal. O conhecimento começa a tomar forma.",
-    "Witcher":       "As habilidades se afiaram. Você é um Witcher — bruxo das complexidades.",
+    "Noob": "Bem-vindo à jornada, novato. Todo mestre já foi um noob.",
+    "Aprendiz": "Você cruzou o primeiro portal. O conhecimento começa a tomar forma.",
+    "Witcher": "As habilidades se afiaram. Você é um Witcher — bruxo das complexidades.",
     "Black Witcher": "Poucos chegam aqui. A escuridão do conhecimento avançado não te assusta mais.",
     "The Lich King": "Você transcendeu. O domínio é total. A morte do ignorante chegou.",
 }
 
 # ── Helpers ────────────────────────────────────────────────────────────────
- 
+
+
 def _load() -> dict:
     if not os.path.exists(STORAGE_FILE):
         return {
@@ -65,33 +68,33 @@ def _load() -> dict:
             "ultima_semana_freeze": None,
             "historico": [],
         }
-    with open(STORAGE_FILE, "r", encoding="utf-8") as f:
+    with open(STORAGE_FILE, encoding="utf-8") as f:
         content = f.read().strip()
         if not content:
-            return _load.__wrapped__() if hasattr(_load, '__wrapped__') else {}
+            return _load.__wrapped__() if hasattr(_load, "__wrapped__") else {}
         return json.loads(content)
- 
- 
+
+
 def _save(data: dict):
     os.makedirs(os.path.dirname(STORAGE_FILE), exist_ok=True)
     with open(STORAGE_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
- 
- 
+
+
 def _get_nivel(xp: int) -> dict:
     for nivel in reversed(NIVEIS):
         if xp >= nivel["min"]:
             return nivel
     return NIVEIS[0]
- 
- 
+
+
 def _get_multiplicador(streak: int) -> float:
     for dias, mult in STREAK_MULTIPLICADORES:
         if streak >= dias:
             return mult
     return 1.0
- 
- 
+
+
 def _atualizar_streak(data: dict) -> tuple[int, bool, bool]:
     """
     Atualiza o streak com base na data de hoje.
@@ -101,7 +104,7 @@ def _atualizar_streak(data: dict) -> tuple[int, bool, bool]:
     ultimo = data.get("ultimo_dia_estudo")
     streak = data.get("streak_atual", 0)
     bonus_streak = False
- 
+
     if ultimo is None:
         streak = 1
     elif ultimo == hoje:
@@ -115,13 +118,13 @@ def _atualizar_streak(data: dict) -> tuple[int, bool, bool]:
             semana_atual = date.today().isocalendar()[1]
             semana_freeze = data.get("ultima_semana_freeze")
             freeze_usado = data.get("freeze_usado_semana", False)
- 
+
             # reset semanal do freeze
             if semana_freeze != semana_atual:
                 data["freeze_usado_semana"] = False
                 data["ultima_semana_freeze"] = semana_atual
                 freeze_usado = False
- 
+
             dias_perdidos = (date.today() - date.fromisoformat(ultimo)).days
             if dias_perdidos == 2 and not freeze_usado:
                 # usa freeze day automaticamente
@@ -130,20 +133,20 @@ def _atualizar_streak(data: dict) -> tuple[int, bool, bool]:
                 streak += 1
             else:
                 streak = 1  # streak quebrado
- 
+
     data["streak_atual"] = streak
     data["ultimo_dia_estudo"] = hoje
- 
+
     if streak > data.get("streak_maximo", 0):
         data["streak_maximo"] = streak
- 
+
     # bônus de 7 dias
     if streak > 0 and streak % 7 == 0:
         bonus_streak = True
- 
+
     return streak, bonus_streak
- 
- 
+
+
 def _barra_progresso(xp: int, nivel: dict) -> str:
     """Gera uma barra de progresso ASCII para o nível atual."""
     if nivel["max"] == float("inf"):
@@ -154,8 +157,8 @@ def _barra_progresso(xp: int, nivel: dict) -> str:
     blocos = int(pct * 10)
     barra = "█" * blocos + "░" * (10 - blocos)
     return f"{barra} {int(pct * 100)}%"
- 
- 
+
+
 def _registrar_xp(area: str, tipo: str, xp_base: int, descricao: str) -> str:
     """
     Função central de registro de XP.
@@ -163,44 +166,46 @@ def _registrar_xp(area: str, tipo: str, xp_base: int, descricao: str) -> str:
     Retorna o dashboard formatado para exibir no chat.
     """
     data = _load()
- 
+
     # atualiza streak
     streak, bonus_streak = _atualizar_streak(data)
     mult = _get_multiplicador(streak)
- 
+
     # calcula XP final com multiplicador
     xp_ganho = int(xp_base * mult)
     xp_bonus_streak = XP_TABLE["streak_7d"] if bonus_streak else 0
- 
+
     xp_total_anterior = data["xp_total"]
     nivel_anterior = _get_nivel(xp_total_anterior)
- 
+
     # soma XP
     data["xp_total"] += xp_ganho + xp_bonus_streak
     if area == "aws":
         data["xp_aws"] = data.get("xp_aws", 0) + xp_ganho
     elif area == "computacao":
         data["xp_computacao"] = data.get("xp_computacao", 0) + xp_ganho
- 
+
     # verifica mudança de nível
     nivel_novo = _get_nivel(data["xp_total"])
     subiu_nivel = nivel_novo["titulo"] != nivel_anterior["titulo"]
     data["nivel_atual"] = nivel_novo["titulo"]
- 
+
     # registra no histórico
-    data["historico"].append({
-        "data": datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "area": area,
-        "tipo": tipo,
-        "descricao": descricao,
-        "xp_base": xp_base,
-        "multiplicador": mult,
-        "xp_ganho": xp_ganho,
-        "streak": streak,
-    })
- 
+    data["historico"].append(
+        {
+            "data": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "area": area,
+            "tipo": tipo,
+            "descricao": descricao,
+            "xp_base": xp_base,
+            "multiplicador": mult,
+            "xp_ganho": xp_ganho,
+            "streak": streak,
+        }
+    )
+
     _save(data)
- 
+
     # ── Monta dashboard ───────────────────────────────────────────────────
     barra = _barra_progresso(data["xp_total"], nivel_novo)
     xp_proximo = (
@@ -208,18 +213,15 @@ def _registrar_xp(area: str, tipo: str, xp_base: int, descricao: str) -> str:
         if nivel_novo["max"] != float("inf")
         else "nível máximo atingido"
     )
- 
+
     streak_emoji = "🔥" if streak >= 7 else "⚡" if streak >= 3 else "✨"
     mult_str = f" (×{mult})" if mult > 1.0 else ""
- 
-    dashboard = (
-        f"\n{'═' * 40}\n"
-        f"  +{xp_ganho} XP{mult_str}  —  {descricao}\n"
-    )
- 
+
+    dashboard = f"\n{'═' * 40}\n  +{xp_ganho} XP{mult_str}  —  {descricao}\n"
+
     if bonus_streak:
         dashboard += f"  +{xp_bonus_streak} XP  —  bônus streak {streak} dias!\n"
- 
+
     dashboard += (
         f"{'─' * 40}\n"
         f"  {nivel_novo['titulo']}  •  {data['xp_total']} XP total\n"
@@ -227,32 +229,33 @@ def _registrar_xp(area: str, tipo: str, xp_base: int, descricao: str) -> str:
         f"  {xp_proximo}\n"
         f"  {streak_emoji} Streak: {streak} dia(s)  •  Máximo: {data['streak_maximo']}\n"
     )
- 
+
     if subiu_nivel:
         dashboard += (
             f"{'═' * 40}\n"
             f"  LEVEL UP!  {nivel_anterior['titulo']} → {nivel_novo['titulo']}\n"
             f"  {MENSAGENS_NIVEL[nivel_novo['titulo']]}\n"
         )
- 
+
     dashboard += f"{'═' * 40}\n"
- 
+
     return dashboard
- 
- 
+
+
 # ── Tool 1: registrar XP de AWS ───────────────────────────────────────────
- 
+
+
 @tool
 def registrar_xp_aws(tipo: str, descricao: str) -> str:
     """
     Registra XP ganho em uma atividade de AWS ou Datacamp.
     Chame SEMPRE após registrar um módulo AWS ou Datacamp concluído.
- 
+
     Args:
         tipo: Tipo da atividade.
               Valores: 'aws_topico', 'aws_sessao', 'datacamp_modulo'.
         descricao: Descrição curta do que foi feito. Exemplo: 'IAM — Policies concluído'.
- 
+
     Returns:
         Dashboard com XP ganho, nível atual, barra de progresso e streak.
     """
@@ -260,19 +263,20 @@ def registrar_xp_aws(tipo: str, descricao: str) -> str:
         RegistrarXPAWSInput(tipo=tipo, descricao=descricao)
     except ValidationError as e:
         return f"Erro de validação: {e.errors()[0]['msg']}"
- 
+
     xp_base = XP_TABLE.get(tipo, 20)
     return _registrar_xp("aws", tipo, xp_base, descricao)
- 
- 
+
+
 # ── Tool 2: registrar XP de Computação ───────────────────────────────────
- 
+
+
 @tool
 def registrar_xp_computacao(tipo: str, descricao: str, dificuldade: str = "") -> str:
     """
     Registra XP ganho em uma atividade de Computação, IA ou LeetCode.
     Chame SEMPRE após registrar um tópico de CS/Agentes ou exercício LeetCode.
- 
+
     Args:
         tipo: Tipo da atividade.
               Valores: 'cs_topico', 'agentes_topico',
@@ -280,7 +284,7 @@ def registrar_xp_computacao(tipo: str, descricao: str, dificuldade: str = "") ->
         descricao: Descrição curta. Exemplo: 'LeetCode — Two Sum resolvido'.
         dificuldade: Apenas para LeetCode: 'easy', 'medium' ou 'hard'.
                      Deixe vazio para outros tipos.
- 
+
     Returns:
         Dashboard com XP ganho, nível atual, barra de progresso e streak.
     """
@@ -288,54 +292,58 @@ def registrar_xp_computacao(tipo: str, descricao: str, dificuldade: str = "") ->
         RegistrarXPCSInput(tipo=tipo, descricao=descricao, dificuldade=dificuldade)
     except ValidationError as e:
         return f"Erro de validação: {e.errors()[0]['msg']}"
- 
+
     if dificuldade and tipo == "leetcode_easy":
         tipo = f"leetcode_{dificuldade}"
- 
+
     xp_base = XP_TABLE.get(tipo, 20)
     return _registrar_xp("computacao", tipo, xp_base, descricao)
- 
- 
+
+
 # ── Tool 3: consultar dashboard completo ──────────────────────────────────
- 
+
+
 @tool
 def consultar_dashboard_xp() -> str:
     """
     Exibe o dashboard completo de gamificação com XP, nível, streak e histórico recente.
     Use quando o usuário perguntar sobre seus pontos, nível ou progresso de gamificação.
- 
+
     Returns:
         Dashboard completo formatado.
     """
     data = _load()
- 
+
     if data["xp_total"] == 0:
         return (
             "Nenhum XP registrado ainda.\n"
             "Comece estudando um tópico e os pontos aparecerão automaticamente!"
         )
- 
+
     nivel = _get_nivel(data["xp_total"])
     barra = _barra_progresso(data["xp_total"], nivel)
     streak = data.get("streak_atual", 0)
     streak_emoji = "🔥" if streak >= 7 else "⚡" if streak >= 3 else "✨"
- 
+
     xp_proximo = (
         f"{nivel['max'] - data['xp_total']} XP para {NIVEIS[NIVEIS.index(nivel) + 1]['titulo']}"
         if nivel["max"] != float("inf")
         else "nível máximo atingido"
     )
- 
+
     # histórico recente (últimas 5 ações)
     historico = data.get("historico", [])[-5:]
-    hist_str = "\n".join(
-        f"  • {h['data'][:10]} +{h['xp_ganho']} XP — {h['descricao']}"
-        for h in reversed(historico)
-    ) or "  Nenhuma atividade ainda."
- 
+    hist_str = (
+        "\n".join(
+            f"  • {h['data'][:10]} +{h['xp_ganho']} XP — {h['descricao']}"
+            for h in reversed(historico)
+        )
+        or "  Nenhuma atividade ainda."
+    )
+
     mult = _get_multiplicador(streak)
     mult_str = f"×{mult} ativo" if mult > 1.0 else "sem multiplicador"
- 
+
     return (
         f"\n{'═' * 44}\n"
         f"  DASHBOARD DE GAMIFICAÇÃO\n"

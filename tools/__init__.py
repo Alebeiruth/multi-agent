@@ -1,49 +1,54 @@
 # ── Tools originais ───────────────────────────────────────────────────────
-from .rag_tool import rag_tool
-from .articles_tool import listar_artigos, atualizar_status_artigo, adicionar_artigo, consultar_artigo
-from .leetcode_tool import (
-    registrar_exercicio,
-    consultar_progresso,
-    sugerir_proximo_exercicio,
-    consultar_leetcode75,
-    marcar_exercicio_leetcode75,
-    proximo_leetcode75,
+from .articles_tool import (
+    adicionar_artigo,
+    atualizar_status_artigo,
+    consultar_artigo,
+    listar_artigos,
+)
+from .aws_tool import (
+    consultar_progresso_aws_datacamp,
+    listar_duvidas_curso,
+    registrar_duvida_curso,
+    registrar_modulo_aws,
+    registrar_modulo_datacamp,
+    sugerir_proximo_aws_datacamp,
 )
 from .calendar_tool import agendar_sessao
+from .computacao_tool import (
+    consultar_progresso_computacao,
+    listar_duvidas_pendentes,
+    registrar_duvida,
+    registrar_estudo_cs,
+    sugerir_proximo_topico_cs,
+)
 
 # ── Tools novas ───────────────────────────────────────────────────────────
 from .estatistica_tool import (
-    registrar_aula,
-    consultar_progresso_estatistica,
     calcular_revisoes,
-    marcar_revisao_feita,
+    consultar_progresso_estatistica,
     gerar_conteudo_email_revisao,
-)
-from .ingles_tool import (
-    registrar_sessao_ingles,
-    consultar_progresso_ingles,
-    adicionar_vocabulario,
-    revisar_vocabulario,
-    sugerir_conteudo_ingles,
-    gerar_prompt_escrita,
-)
-from .computacao_tool import (
-    registrar_estudo_cs,
-    consultar_progresso_computacao,
-    sugerir_proximo_topico_cs,
-    registrar_duvida,
-    listar_duvidas_pendentes,
-)
-from .aws_tool import (
-    registrar_modulo_aws,
-    registrar_modulo_datacamp,
-    consultar_progresso_aws_datacamp,
-    sugerir_proximo_aws_datacamp,
-    registrar_duvida_curso,
-    listar_duvidas_curso,
+    marcar_revisao_feita,
+    registrar_aula,
 )
 from .gamification_tool import (
+    consultar_dashboard_xp,
     registrar_xp_aws,
     registrar_xp_computacao,
-    consultar_dashboard_xp,
 )
+from .ingles_tool import (
+    adicionar_vocabulario,
+    consultar_progresso_ingles,
+    gerar_prompt_escrita,
+    registrar_sessao_ingles,
+    revisar_vocabulario,
+    sugerir_conteudo_ingles,
+)
+from .leetcode_tool import (
+    consultar_leetcode75,
+    consultar_progresso,
+    marcar_exercicio_leetcode75,
+    proximo_leetcode75,
+    registrar_exercicio,
+    sugerir_proximo_exercicio,
+)
+from .rag_tool import rag_tool

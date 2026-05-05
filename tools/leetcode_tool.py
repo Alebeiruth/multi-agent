@@ -1,6 +1,7 @@
+from datetime import datetime
 import json
 import os
-from datetime import datetime
+
 from langchain_core.tools import tool
 
 STORAGE_FILE = "storage/leetcode.json"
@@ -9,10 +10,11 @@ LEETCODE75_FILE = "storage/leetcode75.json"
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 
+
 def _load() -> dict:
     if not os.path.exists(STORAGE_FILE):
         return {"exercises": [], "checklist": []}
-    with open(STORAGE_FILE, "r", encoding="utf-8") as f:
+    with open(STORAGE_FILE, encoding="utf-8") as f:
         content = f.read().strip()
         if not content:
             return {"exercises": [], "checklist": []}
@@ -28,7 +30,7 @@ def _save(data: dict):
 def _load75() -> dict:
     if not os.path.exists(LEETCODE75_FILE):
         return {"total": 0, "exercises": []}
-    with open(LEETCODE75_FILE, "r", encoding="utf-8") as f:
+    with open(LEETCODE75_FILE, encoding="utf-8") as f:
         content = f.read().strip()
         if not content:
             return {"total": 0, "exercises": []}
@@ -42,6 +44,7 @@ def _save75(data: dict):
 
 
 # ── Tool 1: registrar exercício livre ──────────────────────────────────────
+
 
 @tool
 def registrar_exercicio(
@@ -80,6 +83,7 @@ def registrar_exercicio(
 
 # ── Tool 2: consultar progresso livre ──────────────────────────────────────
 
+
 @tool
 def consultar_progresso() -> str:
     """
@@ -115,6 +119,7 @@ def consultar_progresso() -> str:
 
 # ── Tool 3: sugerir próximo exercício livre ────────────────────────────────
 
+
 @tool
 def sugerir_proximo_exercicio() -> str:
     """
@@ -136,9 +141,17 @@ def sugerir_proximo_exercicio() -> str:
         topicos[t] = topicos.get(t, 0) + 1
 
     roadmap = [
-        "arrays", "strings", "hash maps", "two pointers",
-        "sliding window", "stack", "binary search",
-        "linked lists", "trees", "graphs", "dynamic programming",
+        "arrays",
+        "strings",
+        "hash maps",
+        "two pointers",
+        "sliding window",
+        "stack",
+        "binary search",
+        "linked lists",
+        "trees",
+        "graphs",
+        "dynamic programming",
     ]
 
     for topico in roadmap:
@@ -153,6 +166,7 @@ def sugerir_proximo_exercicio() -> str:
 
 
 # ── Tool 4: consultar LeetCode 75 ─────────────────────────────────────────
+
 
 @tool
 def consultar_leetcode75(topico: str = "") -> str:
@@ -186,7 +200,15 @@ def consultar_leetcode75(topico: str = "") -> str:
 
         linhas = [f"📚 Tópico: {filtrados[0]['topico']}\n"]
         for e in filtrados:
-            emoji = "✅" if e["status"] == "resolvido" else "⏳" if e["status"] == "tentado" else "🔁" if e["status"] == "revisitar" else "⬜"
+            emoji = (
+                "✅"
+                if e["status"] == "resolvido"
+                else "⏳"
+                if e["status"] == "tentado"
+                else "🔁"
+                if e["status"] == "revisitar"
+                else "⬜"
+            )
             linhas.append(f"{emoji} [{e['dificuldade'].upper()}] {e['titulo']}")
 
         resolvidos = sum(1 for e in filtrados if e["status"] == "resolvido")
@@ -211,8 +233,7 @@ def consultar_leetcode75(topico: str = "") -> str:
                 topicos[t]["resolvidos"] += 1
 
         topicos_str = "\n".join(
-            f"  - {t}: {v['resolvidos']}/{v['total']}"
-            for t, v in topicos.items()
+            f"  - {t}: {v['resolvidos']}/{v['total']}" for t, v in topicos.items()
         )
 
         return (
@@ -225,6 +246,7 @@ def consultar_leetcode75(topico: str = "") -> str:
 
 
 # ── Tool 5: marcar exercício do LeetCode 75 ───────────────────────────────
+
 
 @tool
 def marcar_exercicio_leetcode75(
@@ -273,6 +295,7 @@ def marcar_exercicio_leetcode75(
 
 
 # ── Tool 6: próximo exercício do LeetCode 75 ──────────────────────────────
+
 
 @tool
 def proximo_leetcode75() -> str:

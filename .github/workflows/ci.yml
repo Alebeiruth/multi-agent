@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  lint:
+    name: Ruff — Lint e Formatação
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar Ruff
+        run: pip install ruff
+
+      - name: Verificar lint
+        run: ruff check .
+
+      - name: Verificar formatação
+        run: ruff format --check .
+
+  test:
+    name: Pytest — Testes unitários
+    runs-on: ubuntu-latest
+    needs: lint  # só roda se o lint passar
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache de dependências pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Instalar dependências
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest ruff
+          pip install langchain-openai langchain-mcp-adapters langgraph-checkpoint-sqlite
+
+      - name: Criar estrutura de pastas necessária
+        run: |
+          mkdir -p storage/estatistica storage/ingles storage/computacao
+          mkdir -p storage/aws storage/gamification
+          mkdir -p data/articles data/estatistica
+
+      - name: Rodar testes
+        env:
+          OPENAI_API_KEY: "sk-fake-key-for-tests"
+          ALEXANDRE_EMAIL: "test@test.com"
+          LANGCHAIN_TRACING_V2: "false"
+        run: pytest tests/ -v --tb=short

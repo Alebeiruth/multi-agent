@@ -1,24 +1,23 @@
-import os
 from datetime import datetime
+
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage, AIMessage
-from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from langgraph.prebuilt import create_react_agent
 
 from tools.aws_tool import (
-        registrar_modulo_aws,
-        registrar_modulo_datacamp,
-        consultar_progresso_aws_datacamp,
-        sugerir_proximo_aws_datacamp,
-        registrar_duvida_curso,
-        listar_duvidas_curso,
-        agendar_sessao,
-        registrar_xp_aws,
-        consultar_dashboard_xp,
+    agendar_sessao,
+    consultar_dashboard_xp,
+    consultar_progresso_aws_datacamp,
+    listar_duvidas_curso,
+    registrar_duvida_curso,
+    registrar_modulo_aws,
+    registrar_modulo_datacamp,
+    registrar_xp_aws,
+    sugerir_proximo_aws_datacamp,
 )
-
 from tools.calendar_tool import agendar_sessao
-from tools.gamification_tool import registrar_xp_aws, consultar_dashboard_xp
+from tools.gamification_tool import consultar_dashboard_xp, registrar_xp_aws
 
 # ── System prompt ──────────────────────────────────────────────────────────
 
@@ -27,7 +26,7 @@ SYSTEM_PROMPT = f"""Você é o agente especialista em AWS e Datacamp de Alexandr
 CONTEXTO:
 - Alexandre está se preparando para a certificação AWS Solutions Architect Associate (SAA-C03)
 - Estuda pelo curso da Udemy em paralelo com trilhas do Datacamp
-- Hoje é {datetime.now().strftime('%Y-%m-%d')}
+- Hoje é {datetime.now().strftime("%Y-%m-%d")}
  
 SUAS RESPONSABILIDADES:
  
@@ -92,17 +91,18 @@ REGRAS:
 
 # ── Função principal do agente ─────────────────────────────────────────────
 
+
 async def run_aws_agent(
-        user_input: str,
-        memory: AsyncSqliteSaver,
+    user_input: str,
+    memory: AsyncSqliteSaver,
 ) -> str:
     """
     Executa o agente de AWS/Datacamp para uma mensagem do usuário.
- 
+
     Args:
         user_input: Mensagem do usuário.
         memory: Instância compartilhada do AsyncSqliteSaver.
- 
+
     Returns:
         Resposta do agente como string.
     """
@@ -126,9 +126,9 @@ async def run_aws_agent(
         prompt=SYSTEM_PROMPT,
         checkpointer=memory,
     )
-    
+
     config = {"configurable": {"thread_id": "alexandre-aws"}}
- 
+
     resposta = ""
     async for chunk in agent.astream(
         {"messages": [HumanMessage(content=user_input)]},
@@ -138,5 +138,5 @@ async def run_aws_agent(
         last = chunk["messages"][-1]
         if isinstance(last, AIMessage) and last.content:
             resposta = last.content
- 
+
     return resposta

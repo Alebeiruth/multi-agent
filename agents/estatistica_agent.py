@@ -1,25 +1,25 @@
-import os
 from datetime import datetime
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage, AIMessage
-from langgraph.prebuilt import create_react_agent
-from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
-from langchain_huggingface import HuggingFaceEmbeddings
+
 from langchain_chroma import Chroma
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.tools.retriever import create_retriever_tool
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain_openai import ChatOpenAI
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from langgraph.prebuilt import create_react_agent
 
-from tools.estatistica_tool import (
-    registrar_aula,
-    consultar_progresso_estatistica,
-    calcular_revisoes,
-    marcar_revisao_feita,
-    gerar_conteudo_email_revisao,
-)
 from tools.calendar_tool import agendar_sessao
-
+from tools.estatistica_tool import (
+    calcular_revisoes,
+    consultar_progresso_estatistica,
+    gerar_conteudo_email_revisao,
+    marcar_revisao_feita,
+    registrar_aula,
+)
 
 # ── RAG — PDFs das aulas de estatística ───────────────────────────────────
+
 
 def build_rag_tool():
     """Constrói o retriever RAG sobre os PDFs das aulas de estatística."""
@@ -54,7 +54,7 @@ SYSTEM_PROMPT = f"""Você é o agente especialista em Estatística e Probabilida
 CONTEXTO:
 - A matéria tem 8 aulas no total, todas às quartas-feiras
 - As revisões seguem o padrão: quinta (D+1), sábado (D+3), terça (D+5)
-- Hoje é {datetime.now().strftime('%Y-%m-%d (%A)')}
+- Hoje é {datetime.now().strftime("%Y-%m-%d (%A)")}
 - Ao registrar uma aula, SEMPRE agende as revisões no Calendar e envie os emails
 
 FLUXO AO REGISTRAR UMA AULA NOVA:
@@ -95,6 +95,7 @@ REGRAS:
 
 # ── Função principal do agente ─────────────────────────────────────────────
 
+
 async def run_estatistica_agent(
     user_input: str,
     memory: AsyncSqliteSaver,
@@ -114,8 +115,10 @@ async def run_estatistica_agent(
     # tools MCP filtradas para este agente
     mcp_tools = await mcp_client.get_tools()
     tools_mcp_permitidas = [
-        "create_event", "list_events",          # Google Calendar
-        "send_email", "search_emails",           # Gmail
+        "create_event",
+        "list_events",  # Google Calendar
+        "send_email",
+        "search_emails",  # Gmail
     ]
     mcp_tools_filtradas = [t for t in mcp_tools if t.name in tools_mcp_permitidas]
 

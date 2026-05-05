@@ -1,32 +1,33 @@
-import os
-import shutil
 import argparse
+import os
 from pathlib import Path
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_chroma import Chroma
-import fitz
+import shutil
 
+import fitz
+from langchain_chroma import Chroma
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 # ── Configuração das coleções ──────────────────────────────────────────────
 
 COLECOES = {
     "artigos": {
-        "data_dir":    "data/articles",
-        "chroma_dir":  "./chroma_db",
-        "collection":  "artigos",
-        "descricao":   "Artigos científicos (coach original)",
+        "data_dir": "data/articles",
+        "chroma_dir": "./chroma_db",
+        "collection": "artigos",
+        "descricao": "Artigos científicos (coach original)",
     },
     "estatistica": {
-        "data_dir":    "data/estatistica",
-        "chroma_dir":  "./chroma_db_estatistica",
-        "collection":  "estatistica",
-        "descricao":   "PDFs das aulas de Estatística e Probabilidade",
+        "data_dir": "data/estatistica",
+        "chroma_dir": "./chroma_db_estatistica",
+        "collection": "estatistica",
+        "descricao": "PDFs das aulas de Estatística e Probabilidade",
     },
 }
 
 
 # ── Funções base ───────────────────────────────────────────────────────────
+
 
 def load_pdfs(directory: str) -> list[dict]:
     """Carrega todos os PDFs de um diretório e extrai o texto."""
@@ -101,7 +102,7 @@ def ingest_colecao(nome: str, config: dict, embeddings: HuggingFaceEmbeddings):
     # deleta o índice existente para garantir consistência
     if os.path.exists(config["chroma_dir"]):
         shutil.rmtree(config["chroma_dir"])
-        print(f"  🗑️  Índice anterior removido.")
+        print("  🗑️  Índice anterior removido.")
 
     Chroma.from_documents(
         documents=chunks,
@@ -114,6 +115,7 @@ def ingest_colecao(nome: str, config: dict, embeddings: HuggingFaceEmbeddings):
 
 
 # ── Entry point ────────────────────────────────────────────────────────────
+
 
 def main():
     parser = argparse.ArgumentParser(

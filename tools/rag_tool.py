@@ -1,8 +1,9 @@
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_chroma import Chroma
-from langchain_core.tools.retriever import create_retriever_tool
 from pathlib import Path
+
+from langchain_chroma import Chroma
 from langchain_core.tools import tool
+from langchain_core.tools.retriever import create_retriever_tool
+from langchain_huggingface import HuggingFaceEmbeddings
 
 embeddings = HuggingFaceEmbeddings(
     model_name="BAAI/bge-large-en-v1.5",
@@ -16,8 +17,8 @@ vectorstore = Chroma(
 )
 
 retriever = vectorstore.as_retriever(
-    search_type="similarity", # pergunta sobre
-    search_kwargs={"k": 4}, # pergunta sobre
+    search_type="similarity",  # pergunta sobre
+    search_kwargs={"k": 4},  # pergunta sobre
 )
 
 rag_tool = create_retriever_tool(
@@ -29,6 +30,7 @@ rag_tool = create_retriever_tool(
         "ou quiser agendar estudo de um artigo específico."
     ),
 )
+
 
 @tool
 def listar_artigos() -> str:
