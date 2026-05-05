@@ -1,8 +1,10 @@
+from datetime import datetime, timedelta
 import json
 import os
-from datetime import datetime, timedelta
+
 from langchain_core.tools import tool
 from pydantic import ValidationError
+
 from tools.validators import RegistrarAulaInput, RevisaoInput
 
 STORAGE_FILE = "storage/estatistica/estatistica.json"
@@ -12,10 +14,11 @@ EMAIL_ALEXANDRE = os.getenv("ALEXANDRE_EMAIL", "alexandre@email.com")
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 
+
 def _load() -> dict:
     if not os.path.exists(STORAGE_FILE):
         return {"aulas": [], "total_aulas": TOTAL_AULAS}
-    with open(STORAGE_FILE, "r", encoding="utf-8") as f:
+    with open(STORAGE_FILE, encoding="utf-8") as f:
         content = f.read().strip()
         if not content:
             return {"aulas": [], "total_aulas": TOTAL_AULAS}
@@ -36,13 +39,14 @@ def _proximas_revisoes(data_aula: str) -> dict:
     """
     base = datetime.strptime(data_aula, "%Y-%m-%d")
     return {
-        "revisao_1": (base).strftime("%Y-%m-%d 20:00"),           # quarta mesmo dia
+        "revisao_1": (base).strftime("%Y-%m-%d 20:00"),  # quarta mesmo dia
         "revisao_2": (base + timedelta(days=3)).strftime("%Y-%m-%d 20:00"),  # sábado
         "revisao_3": (base + timedelta(days=5)).strftime("%Y-%m-%d 20:00"),  # segunda
     }
 
 
 # ── Tool 1: registrar aula ─────────────────────────────────────────────────
+
 
 @tool
 def registrar_aula(
@@ -68,8 +72,11 @@ def registrar_aula(
     """
     try:
         RegistrarAulaInput(
-            numero=numero, tema=tema, conteudos=conteudos,
-            data_aula=data_aula, observacoes=observacoes,
+            numero=numero,
+            tema=tema,
+            conteudos=conteudos,
+            data_aula=data_aula,
+            observacoes=observacoes,
         )
     except ValidationError as e:
         return f"Erro de validação: {e.errors()[0]['msg']}"
@@ -114,6 +121,7 @@ def registrar_aula(
 
 # ── Tool 2: consultar progresso da matéria ────────────────────────────────
 
+
 @tool
 def consultar_progresso_estatistica() -> str:
     """
@@ -131,12 +139,9 @@ def consultar_progresso_estatistica() -> str:
     restantes = total - concluidas
 
     if not aulas:
-        return (
-            f"Nenhuma aula registrada ainda.\n"
-            f"Total da matéria: {total} aulas."
-        )
+        return f"Nenhuma aula registrada ainda.\nTotal da matéria: {total} aulas."
 
-    linhas = [f"📊 Estatística e Probabilidade — Progresso\n"]
+    linhas = ["📊 Estatística e Probabilidade — Progresso\n"]
     linhas.append(f"Concluídas: {concluidas}/{total} aulas | Restantes: {restantes}\n")
 
     for aula in aulas:
@@ -155,6 +160,7 @@ def consultar_progresso_estatistica() -> str:
 
 
 # ── Tool 3: calcular datas de revisão ─────────────────────────────────────
+
 
 @tool
 def calcular_revisoes(numero_aula: int) -> str:
@@ -184,6 +190,7 @@ def calcular_revisoes(numero_aula: int) -> str:
 
 
 # ── Tool 4: marcar revisão como feita ────────────────────────────────────
+
 
 @tool
 def marcar_revisao_feita(numero_aula: int, numero_revisao: int) -> str:
@@ -228,6 +235,7 @@ def marcar_revisao_feita(numero_aula: int, numero_revisao: int) -> str:
 
 # ── Tool 5: gerar corpo do email de revisão ──────────────────────────────
 
+
 @tool
 def gerar_conteudo_email_revisao(numero_aula: int, numero_revisao: int) -> str:
     """
@@ -247,7 +255,11 @@ def gerar_conteudo_email_revisao(numero_aula: int, numero_revisao: int) -> str:
     if not aula:
         return f"Aula {numero_aula} não encontrada."
 
-    labels = {1: "1ª revisão — mesmo dia", 2: "2ª revisão — 3 dias depois", 3: "3ª revisão — 5 dias depois"}
+    labels = {
+        1: "1ª revisão — mesmo dia",
+        2: "2ª revisão — 3 dias depois",
+        3: "3ª revisão — 5 dias depois",
+    }
     label = labels.get(numero_revisao, f"Revisão {numero_revisao}")
 
     assunto = f"📐 Revisão Estatística: {aula['tema']} ({label})"
@@ -256,12 +268,12 @@ def gerar_conteudo_email_revisao(numero_aula: int, numero_revisao: int) -> str:
 
 Este é o seu lembrete de revisão de Estatística e Probabilidade.
 
-📚 Aula {aula['numero']}: {aula['tema']}
-📅 Aula assistida em: {aula['data_aula']}
+📚 Aula {aula["numero"]}: {aula["tema"]}
+📅 Aula assistida em: {aula["data_aula"]}
 🔁 {label}
 
 Conteúdos para revisar:
-{aula['conteudos']}
+{aula["conteudos"]}
 """
 
     if aula.get("observacoes"):

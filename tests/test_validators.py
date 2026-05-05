@@ -5,27 +5,27 @@ Garante que cada modelo Pydantic aceita inputs válidos
 e rejeita inputs inválidos com mensagens claras.
 """
 
-import pytest
 from pydantic import ValidationError
+import pytest
+
 from tools.validators import (
-    RegistrarAulaInput,
-    RevisaoInput,
-    RegistrarSessaoInglesInput,
     AdicionarVocabularioInput,
+    AgendarSessaoInput,
+    RegistrarAulaInput,
+    RegistrarDuvidaCursoInput,
     RegistrarEstudoCSInput,
     RegistrarModuloAWSInput,
     RegistrarModuloDCInput,
-    RegistrarDuvidaCursoInput,
+    RegistrarSessaoInglesInput,
     RegistrarXPAWSInput,
     RegistrarXPCSInput,
-    AgendarSessaoInput,
+    RevisaoInput,
 )
-
 
 # ── RegistrarAulaInput ─────────────────────────────────────────────────────
 
-class TestRegistrarAulaInput:
 
+class TestRegistrarAulaInput:
     def test_valido(self):
         obj = RegistrarAulaInput(numero=1, tema="Distribuição Normal", conteudos="média, variância")
         assert obj.numero == 1
@@ -57,8 +57,8 @@ class TestRegistrarAulaInput:
 
 # ── RevisaoInput ───────────────────────────────────────────────────────────
 
-class TestRevisaoInput:
 
+class TestRevisaoInput:
     def test_valido(self):
         obj = RevisaoInput(numero_aula=1, numero_revisao=2)
         assert obj.numero_revisao == 2
@@ -74,10 +74,12 @@ class TestRevisaoInput:
 
 # ── RegistrarSessaoInglesInput ─────────────────────────────────────────────
 
-class TestRegistrarSessaoInglesInput:
 
+class TestRegistrarSessaoInglesInput:
     def test_tipo_valido(self):
-        obj = RegistrarSessaoInglesInput(tipo="podcast", descricao="Ouvi Syntax.fm", duracao_minutos=30)
+        obj = RegistrarSessaoInglesInput(
+            tipo="podcast", descricao="Ouvi Syntax.fm", duracao_minutos=30
+        )
         assert obj.tipo == "podcast"
 
     def test_tipo_invalido(self):
@@ -95,8 +97,8 @@ class TestRegistrarSessaoInglesInput:
 
 # ── RegistrarEstudoCSInput ─────────────────────────────────────────────────
 
-class TestRegistrarEstudoCSInput:
 
+class TestRegistrarEstudoCSInput:
     def test_area_valida(self):
         obj = RegistrarEstudoCSInput(area="agentes", topico="LangGraph", duracao_minutos=60)
         assert obj.area == "agentes"
@@ -107,18 +109,22 @@ class TestRegistrarEstudoCSInput:
 
     def test_status_invalido(self):
         with pytest.raises(ValidationError):
-            RegistrarEstudoCSInput(area="agentes", topico="LangGraph", duracao_minutos=60, status="completo")
+            RegistrarEstudoCSInput(
+                area="agentes", topico="LangGraph", duracao_minutos=60, status="completo"
+            )
 
     def test_todos_status_validos(self):
         for status in ["estudado", "revisando", "dominado"]:
-            obj = RegistrarEstudoCSInput(area="agentes", topico="RAG", duracao_minutos=30, status=status)
+            obj = RegistrarEstudoCSInput(
+                area="agentes", topico="RAG", duracao_minutos=30, status=status
+            )
             assert obj.status == status
 
 
 # ── RegistrarModuloAWSInput ───────────────────────────────────────────────
 
-class TestRegistrarModuloAWSInput:
 
+class TestRegistrarModuloAWSInput:
     def test_valido(self):
         obj = RegistrarModuloAWSInput(topico="IAM", duracao_minutos=60)
         assert obj.status == "concluido"
@@ -130,8 +136,8 @@ class TestRegistrarModuloAWSInput:
 
 # ── RegistrarModuloDCInput ────────────────────────────────────────────────
 
-class TestRegistrarModuloDCInput:
 
+class TestRegistrarModuloDCInput:
     def test_trilha_valida(self):
         obj = RegistrarModuloDCInput(curso="Python", modulo="Python Basics", duracao_minutos=30)
         assert obj.curso == "Python"
@@ -148,10 +154,12 @@ class TestRegistrarModuloDCInput:
 
 # ── RegistrarDuvidaCursoInput ─────────────────────────────────────────────
 
-class TestRegistrarDuvidaCursoInput:
 
+class TestRegistrarDuvidaCursoInput:
     def test_plataforma_valida(self):
-        obj = RegistrarDuvidaCursoInput(plataforma="aws", topico="VPC", duvida="O que é subnetting?")
+        obj = RegistrarDuvidaCursoInput(
+            plataforma="aws", topico="VPC", duvida="O que é subnetting?"
+        )
         assert obj.plataforma == "aws"
 
     def test_plataforma_invalida(self):
@@ -165,8 +173,8 @@ class TestRegistrarDuvidaCursoInput:
 
 # ── RegistrarXPAWSInput ───────────────────────────────────────────────────
 
-class TestRegistrarXPAWSInput:
 
+class TestRegistrarXPAWSInput:
     def test_tipo_valido(self):
         obj = RegistrarXPAWSInput(tipo="aws_topico", descricao="IAM concluído")
         assert obj.tipo == "aws_topico"
@@ -183,8 +191,8 @@ class TestRegistrarXPAWSInput:
 
 # ── RegistrarXPCSInput ────────────────────────────────────────────────────
 
-class TestRegistrarXPCSInput:
 
+class TestRegistrarXPCSInput:
     def test_tipo_valido(self):
         obj = RegistrarXPCSInput(tipo="leetcode_easy", descricao="Two Sum")
         assert obj.tipo == "leetcode_easy"
@@ -201,8 +209,8 @@ class TestRegistrarXPCSInput:
 
 # ── AgendarSessaoInput ────────────────────────────────────────────────────
 
-class TestAgendarSessaoInput:
 
+class TestAgendarSessaoInput:
     def test_valido(self):
         obj = AgendarSessaoInput(
             tipo="aws",
